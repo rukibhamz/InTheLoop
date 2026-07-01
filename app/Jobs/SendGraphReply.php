@@ -1,0 +1,72 @@
+<?php
+
+namespace App\Jobs;
+
+use App\Models\Report;
+use App\Models\ReportMessage;
+use App\Models\User;
+use App\Services\Graph\GraphReplySender;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Log;
+
+class SendGraphReply implements ShouldQueue
+{
+    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+
+    public int $tries = 5;
+
+    public function backoff(): array
+    {
+        return [30, 60, 120, 300, 600];
+    }
+
+    public function __construct(
+        public ReportMessage $message,
+        public User $user
+    ) {}
+
+    public function handle(GraphReplySender $sender): void
+    {
+        if (! $sender->isConfigured()) {
+            return;
+        }
+
+        $report = $this->message->report;
+
+        $result = $sender->replyAll(
+            $report,
+            $this->user,
+            $this->message->body_text ?? strip_tags($this->message->body_html ?? '')
+        );
+
+        if ($result['sent']) {
+            $this->message->update(['email_pending' => false]);
+
+            return;
+        }
+
+        if ($result['reason'] === 'no_mailbox') {
+            $this->message->update(['email_pending' => false]);
+
+            return;
+        }
+
+        if ($result['reason'] === 'copy_not_synced' && $this->attempts() < $this->tries) {
+            Log::info('Graph reply waiting for mailbox copy sync', [
+                'report_id' => $report->id,
+                'message_id' => $this->message->id,
+                'attempt' => $this->attempts(),
+            ]);
+
+            $this->release($this->backoff()[$this->attempts() - 1] ?? 300);
+
+            return;
+        }
+
+        $this->message->update(['email_pending' => $result['reason'] === 'copy_not_synced']);
+    }
+}

@@ -1,0 +1,19 @@
+<IfModule mod_rewrite.c>
+    Options +FollowSymLinks -Indexes
+    RewriteEngine On
+    RewriteBase /InTheLoop/
+
+    # Vite / Mix build output lives in public/build/
+    RewriteRule ^build/(.*)$ public/build/$1 [L]
+
+    # Serve other static files from public/ when present
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond public/$1 -f
+    RewriteRule ^(.+)$ public/$1 [L]
+
+    # Route everything else through the root front controller
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^ index.php [L]
+</IfModule>
