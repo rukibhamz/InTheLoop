@@ -14,10 +14,10 @@
         <div class="mb-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             <div class="stat-card">
                 <div class="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-primary-50 text-primary-600">
-                    <span class="material-symbols-outlined">assignment</span>
+                    <span class="material-symbols-outlined">send</span>
                 </div>
-                <p class="text-xs font-semibold tracking-wide text-on-surface-variant uppercase">Pending Approval</p>
-                <p class="mt-1 text-3xl font-bold text-on-surface">{{ number_format($stats['pending_approval']) }}</p>
+                <p class="text-xs font-semibold tracking-wide text-on-surface-variant uppercase">Sent</p>
+                <p class="mt-1 text-3xl font-bold text-on-surface">{{ number_format($stats['sent']) }}</p>
                 <p class="mt-1 text-sm text-on-surface-variant">Reports</p>
             </div>
 
