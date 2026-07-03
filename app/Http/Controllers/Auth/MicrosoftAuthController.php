@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\Auth\AppLoginGate;
+use App\Services\Graph\GraphUserProfileResolver;
 use App\Services\MicrosoftSettings;
 use App\Services\MicrosoftSocialiteConfigurator;
 use Illuminate\Http\RedirectResponse;
@@ -11,7 +13,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
 use Laravel\Socialite\Facades\Socialite;
-use RuntimeException;
 
 class MicrosoftAuthController extends Controller
 {
@@ -35,7 +36,9 @@ class MicrosoftAuthController extends Controller
     public function callback(
         Request $request,
         MicrosoftSettings $settings,
-        MicrosoftSocialiteConfigurator $configurator
+        MicrosoftSocialiteConfigurator $configurator,
+        AppLoginGate $loginGate,
+        GraphUserProfileResolver $profileResolver
     ): RedirectResponse {
         if (! $settings->isSsoEnabled()) {
             return redirect()->route('login');
@@ -44,39 +47,50 @@ class MicrosoftAuthController extends Controller
         $configurator->apply();
 
         $microsoftUser = Socialite::driver('microsoft')->user();
+        $azureObjectId = $microsoftUser->getId();
+        $loginEmail = $microsoftUser->getEmail();
+        $primaryMail = $profileResolver->primaryMail($azureObjectId, $loginEmail);
 
-        $user = User::query()->where('azure_object_id', $microsoftUser->getId())->first();
+        $user = User::query()->where('azure_object_id', $azureObjectId)->first();
 
-        if (! $user && $microsoftUser->getEmail()) {
-            $user = User::query()->where('email', $microsoftUser->getEmail())->first();
+        if (! $user && filled($loginEmail)) {
+            $email = strtolower($loginEmail);
+            $user = User::query()
+                ->whereRaw('lower(email) = ?', [$email])
+                ->orWhereRaw('lower(shared_mailbox_email) = ?', [$email])
+                ->first();
         }
 
         if ($user) {
-            if (! $user->is_active) {
+            if (! $loginGate->userMayAuthenticate($user)) {
                 throw ValidationException::withMessages([
                     'email' => 'Your account has been deactivated. Contact your administrator.',
                 ]);
             }
 
             $user->forceFill([
-                'azure_object_id' => $microsoftUser->getId(),
+                'azure_object_id' => $azureObjectId,
                 'auth_method' => 'sso',
                 'name' => $microsoftUser->getName() ?: $user->name,
             ]);
 
-            if ($microsoftUser->getEmail()) {
-                $user->syncSharedMailboxFromAzure($microsoftUser->getEmail());
+            if (filled($primaryMail)) {
+                $user->syncSharedMailboxFromAzure($primaryMail);
             }
 
             $user->save();
         } else {
-            $email = $microsoftUser->getEmail() ?: throw new RuntimeException('Microsoft account did not return an email address.');
+            if (! filled($loginEmail)) {
+                throw ValidationException::withMessages([
+                    'email' => 'Microsoft sign-in did not return an email address.',
+                ]);
+            }
 
             $user = User::query()->create([
                 'name' => $microsoftUser->getName() ?: 'Microsoft User',
-                'email' => $email,
-                'shared_mailbox_email' => $email,
-                'azure_object_id' => $microsoftUser->getId(),
+                'email' => $loginEmail,
+                'shared_mailbox_email' => $primaryMail ?: $loginEmail,
+                'azure_object_id' => $azureObjectId,
                 'auth_method' => 'sso',
                 'password' => null,
             ]);

@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Services\Graph\GraphSettings;
 use App\Services\Graph\GraphTokenService;
+use App\Services\Graph\GraphUserPath;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Http;
 
@@ -75,6 +76,30 @@ class TestGraphConnection extends Command
         } catch (\Throwable $e) {
             $this->warn("Mailbox read failed for {$sender}.");
             $this->line('If credentials and User.Read.All work, this is often an Application Access Policy issue — restrict the app to your shared mailboxes in Exchange Online PowerShell.');
+            $this->error($e->getMessage());
+
+            return self::FAILURE;
+        }
+
+        try {
+            $userPath = GraphUserPath::for($sender);
+            Http::withToken($token)
+                ->post(config('graph.base_url')."/users/{$userPath}/sendMail", [
+                    'message' => [
+                        'subject' => 'InTheLoop Graph send test',
+                        'body' => ['contentType' => 'Text', 'content' => 'Connection test — safe to ignore.'],
+                        'toRecipients' => [
+                            ['emailAddress' => ['address' => $sender]],
+                        ],
+                    ],
+                    'saveToSentItems' => false,
+                ])
+                ->throw();
+
+            $this->line("Mailbox send (Mail.Send) for {$sender}: OK");
+        } catch (\Throwable $e) {
+            $this->error("Mailbox send failed for {$sender}.");
+            $this->line('Outbound email uses the default sender mailbox. User mailboxes must be added to the Exchange Application Access Policy, or set users\' shared mailbox to the default sender.');
             $this->error($e->getMessage());
 
             return self::FAILURE;

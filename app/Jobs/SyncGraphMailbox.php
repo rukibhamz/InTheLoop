@@ -21,7 +21,9 @@ class SyncGraphMailbox implements ShouldQueue
 
     public function __construct(
         public string $mailbox
-    ) {}
+    ) {
+        $this->onQueue('sync');
+    }
 
     public function handle(GraphSettings $settings, GraphMailSync $sync): void
     {

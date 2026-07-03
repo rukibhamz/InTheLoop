@@ -120,7 +120,7 @@ Living progress tracker for the InTheLoop system. Aligned with [SKILL.md](SKILL.
 | `GraphMailer` service | ✅ | Falls back to mock when unconfigured |
 | Outbound email Blade template | ✅ | `emails/report-submitted.blade.php` |
 | Capture `conversation_id` on send | ✅ | Fetches from Sent Items when Graph live |
-| Queue worker documented | ✅ | `php artisan queue:work` |
+| Queue worker documented | ✅ | `php artisan queue:work --queue=mail,default,sync --queue=mail,default,sync` |
 | Real test email (To + CC) | ⬜ | Blocked on Entra credentials |
 
 ---
@@ -234,7 +234,7 @@ composer install --no-dev
 npm install && npm run build
 php artisan migrate
 php artisan db:seed --class=DevelopmentSeeder
-php artisan queue:work
+php artisan queue:work --queue=mail,default,sync
 php artisan schedule:work   # local scheduler
 ```
 

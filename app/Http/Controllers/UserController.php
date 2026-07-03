@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreUserRequest;
 use App\Http\Requests\UpdateUserRequest;
+use App\Models\DirectoryContact;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -20,7 +21,10 @@ class UserController extends Controller
                 $query->where(function ($builder) use ($search) {
                     $builder->where('name', 'like', "%{$search}%")
                         ->orWhere('email', 'like', "%{$search}%")
-                        ->orWhere('department', 'like', "%{$search}%");
+                        ->orWhere('shared_mailbox_email', 'like', "%{$search}%")
+                        ->orWhereIn('email', DirectoryContact::query()
+                            ->where('job_title', 'like', "%{$search}%")
+                            ->select('email'));
                 });
             })
             ->when($request->filled('role'), function ($query) use ($request) {
@@ -35,6 +39,10 @@ class UserController extends Controller
             ->paginate(12)
             ->withQueryString();
 
+        $jobTitles = DirectoryContact::query()
+            ->whereIn('email', $users->pluck('email'))
+            ->pluck('job_title', 'email');
+
         $stats = [
             'total' => User::query()->count(),
             'admins' => User::query()->where('is_admin', true)->count(),
@@ -42,7 +50,7 @@ class UserController extends Controller
             'inactive' => User::query()->where('is_active', false)->count(),
         ];
 
-        return view('users.index', compact('users', 'stats'));
+        return view('users.index', compact('users', 'stats', 'jobTitles'));
     }
 
     public function create(): View

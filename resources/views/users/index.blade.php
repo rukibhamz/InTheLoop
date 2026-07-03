@@ -38,7 +38,7 @@
             <form method="GET" class="flex flex-col gap-3 border-b border-gray-100 p-3 sm:flex-row sm:items-center sm:p-4">
                 <div class="relative min-w-0 flex-1">
                     <span class="material-symbols-outlined pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-[20px] text-gray-400">search</span>
-                    <input type="search" name="q" value="{{ request('q') }}" class="form-input-icon" placeholder="Search by name, email, or department...">
+                    <input type="search" name="q" value="{{ request('q') }}" class="form-input-icon" placeholder="Search by name, email, or job role...">
                 </div>
                 <select name="role" class="form-select w-full sm:max-w-[180px]" onchange="this.form.submit()">
                     <option value="">All Roles</option>
@@ -54,7 +54,7 @@
                     <thead class="border-b border-gray-100 bg-gray-50/80 text-xs font-semibold tracking-wide text-on-surface-variant uppercase">
                         <tr>
                             <th class="px-5 py-3">User</th>
-                            <th class="px-5 py-3">Department</th>
+                            <th class="px-5 py-3">Job Role</th>
                             <th class="px-5 py-3">Roles</th>
                             <th class="px-5 py-3">Status</th>
                             <th class="px-5 py-3 text-right">Actions</th>
@@ -72,7 +72,7 @@
                                         </div>
                                     </div>
                                 </td>
-                                <td class="px-5 py-4 text-on-surface-variant">{{ $user->department ?? '—' }}</td>
+                                <td class="px-5 py-4 text-on-surface-variant">{{ $jobTitles[$user->email] ?? '—' }}</td>
                                 <td class="px-5 py-4">
                                     <div class="flex flex-wrap gap-1">
                                         @if ($user->is_admin)<span class="category-pill">Admin</span>@endif

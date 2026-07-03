@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\UpdateMicrosoftSettingsRequest;
+use App\Jobs\SyncDirectoryContacts;
 use App\Models\AppSetting;
 use App\Services\Branding;
 use App\Services\Graph\GraphSettings;
@@ -51,6 +52,10 @@ class MicrosoftSettingsController extends Controller
         $branding->clearCache();
         $graphSettings->clearCache();
         $graphTokens->forgetCachedToken();
+
+        if ($graphSettings->isConfigured()) {
+            SyncDirectoryContacts::dispatch();
+        }
 
         return back()->with('success', 'Microsoft settings saved.');
     }

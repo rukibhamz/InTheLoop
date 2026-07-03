@@ -12,6 +12,7 @@ use App\Models\ReportCategory;
 use App\Models\ReportEvent;
 use App\Models\ReportParticipant;
 use App\Models\User;
+use App\Support\DirectoryDisplayResolver;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -39,11 +40,7 @@ class ReportController extends Controller
             ->get(['created_at', 'approved_at']);
 
         $stats = [
-            'pending_approval' => (clone $baseQuery)->whereIn('status', [
-                ReportStatus::Pending,
-                ReportStatus::Sent,
-                ReportStatus::InReview,
-            ])->count(),
+            'sent' => (clone $baseQuery)->where('status', ReportStatus::Sent)->count(),
             'completed' => (clone $baseQuery)->whereIn('status', [
                 ReportStatus::Approved,
                 ReportStatus::Resolved,
@@ -68,9 +65,7 @@ class ReportController extends Controller
 
     public function create(): View
     {
-        $categories = ReportCategory::query()->orderBy('name')->get();
-
-        return view('reports.create', compact('categories'));
+        return view('reports.create');
     }
 
     public function store(StoreReportRequest $request): RedirectResponse
@@ -78,7 +73,7 @@ class ReportController extends Controller
         $report = DB::transaction(function () use ($request) {
             $report = Report::query()->create([
                 'user_id' => $request->user()->id,
-                'category_id' => $request->integer('category_id'),
+                'category_id' => $this->defaultCategoryId(),
                 'subject' => $request->string('subject')->toString(),
                 'body' => $request->string('body')->toString(),
                 'status' => ReportStatus::Pending,
@@ -128,7 +123,7 @@ class ReportController extends Controller
     {
         $this->authorize('view', $report);
 
-        $report->load(['category', 'participants', 'threadMessages.attachments', 'attachments', 'user', 'events']);
+        $report->load(['participants', 'threadMessages.attachments', 'attachments', 'user', 'events']);
 
         ReportEvent::query()->create([
             'report_id' => $report->id,
@@ -136,17 +131,37 @@ class ReportController extends Controller
             'meta' => ['user_id' => auth()->id()],
         ]);
 
-        return view('reports.show', compact('report'));
+        $directory = DirectoryDisplayResolver::forReport($report);
+
+        return view('reports.show', compact('report', 'directory'));
     }
 
     private function syncParticipant(Report $report, array $participant, ParticipantType $type): void
     {
+        $email = $participant['email'];
+        $name = $participant['name'] ?? null;
+
+        if (! filled($name)) {
+            $name = DirectoryContact::query()
+                ->whereRaw('lower(email) = ?', [strtolower($email)])
+                ->value('display_name')
+                ?? User::query()->whereRaw('lower(email) = ?', [strtolower($email)])->value('name');
+        }
+
         ReportParticipant::query()->create([
             'report_id' => $report->id,
-            'email' => $participant['email'],
-            'name' => $participant['name'] ?? null,
+            'email' => $email,
+            'name' => $name,
             'type' => $type,
-            'user_id' => User::query()->where('email', $participant['email'])->value('id'),
+            'user_id' => User::query()->where('email', $email)->value('id'),
         ]);
+    }
+
+    private function defaultCategoryId(): int
+    {
+        return ReportCategory::query()->firstOrCreate(
+            ['name' => 'General'],
+            ['description' => 'Uncategorized reports']
+        )->id;
     }
 }

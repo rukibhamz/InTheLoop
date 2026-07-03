@@ -23,12 +23,8 @@ class RecipientController extends Controller
             $query->where(function ($builder) use ($search) {
                 $builder->where('name', 'like', "%{$search}%")
                     ->orWhere('shared_mailbox_email', 'like', "%{$search}%")
-                    ->orWhere('department', 'like', "%{$search}%");
+                    ->orWhere('role', 'like', "%{$search}%");
             });
-        }
-
-        if ($department = $request->string('department')->trim()->toString()) {
-            $query->where('department', $department);
         }
 
         if ($role = $request->string('role')->trim()->toString()) {
@@ -44,19 +40,13 @@ class RecipientController extends Controller
             'pending_invites' => User::query()->where('is_active', false)->count(),
         ];
 
-        $departments = Recipient::query()
-            ->whereNotNull('department')
-            ->distinct()
-            ->orderBy('department')
-            ->pluck('department');
-
         $roles = Recipient::query()
             ->whereNotNull('role')
             ->distinct()
             ->orderBy('role')
             ->pluck('role');
 
-        return view('recipients.index', compact('recipients', 'stats', 'departments', 'roles'));
+        return view('recipients.index', compact('recipients', 'stats', 'roles'));
     }
 
     public function create(): View

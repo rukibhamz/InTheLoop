@@ -42,6 +42,20 @@ class GraphSettings
     }
 
     /**
+     * Mailboxes the Entra application access policy allows for Mail.Send.
+     * Only the configured default sender and explicitly listed monitored mailboxes qualify.
+     */
+    public function isPolicyAllowedMailbox(string $mailbox): bool
+    {
+        $allowed = array_map('strtolower', array_filter(array_merge(
+            [$this->defaultSenderMailbox()],
+            $this->monitoredMailboxes(),
+        )));
+
+        return in_array(strtolower($mailbox), $allowed, true);
+    }
+
+    /**
      * @return list<string>
      */
     public function monitoredMailboxes(): array

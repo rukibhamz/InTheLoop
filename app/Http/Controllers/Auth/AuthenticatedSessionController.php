@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Services\Auth\AppLoginGate;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -25,7 +26,7 @@ class AuthenticatedSessionController extends Controller
         ]);
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request, AppLoginGate $loginGate): RedirectResponse
     {
         $credentials = $request->validate([
             'email' => ['required', 'email'],
@@ -38,7 +39,7 @@ class AuthenticatedSessionController extends Controller
             ]);
         }
 
-        if (! Auth::user()->is_active) {
+        if (! $loginGate->userMayAuthenticate(Auth::user())) {
             Auth::logout();
 
             throw ValidationException::withMessages([

@@ -24,7 +24,9 @@ class SendReportEmail implements ShouldQueue
 
     public function __construct(
         public Report $report
-    ) {}
+    ) {
+        $this->onQueue('mail');
+    }
 
     public function handle(GraphMailer $mailer): void
     {

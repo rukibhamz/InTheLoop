@@ -27,7 +27,9 @@ class SendGraphReply implements ShouldQueue
     public function __construct(
         public ReportMessage $message,
         public User $user
-    ) {}
+    ) {
+        $this->onQueue('mail');
+    }
 
     public function handle(GraphReplySender $sender): void
     {

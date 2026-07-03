@@ -44,14 +44,8 @@
             <form method="GET" action="{{ route('recipients.index') }}" class="flex flex-col gap-3 border-b border-gray-100 p-3 sm:flex-row sm:items-center sm:p-4">
                 <div class="relative min-w-0 flex-1">
                     <span class="material-symbols-outlined pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-[20px] text-gray-400">search</span>
-                    <input type="search" name="q" value="{{ request('q') }}" class="form-input-icon" placeholder="Search by name, email, or department...">
+                    <input type="search" name="q" value="{{ request('q') }}" class="form-input-icon" placeholder="Search by name, email, or job role...">
                 </div>
-                <select name="department" class="form-select w-full sm:max-w-[200px]" onchange="this.form.submit()">
-                    <option value="">All Departments</option>
-                    @foreach ($departments as $dept)
-                        <option value="{{ $dept }}" @selected(request('department') === $dept)>{{ $dept }}</option>
-                    @endforeach
-                </select>
                 <select name="role" class="form-select w-full sm:max-w-[180px]" onchange="this.form.submit()">
                     <option value="">All Roles</option>
                     @foreach ($roles as $roleOption)
@@ -69,8 +63,7 @@
                         <tr>
                             <th class="px-5 py-3">Name</th>
                             <th class="px-5 py-3">Email</th>
-                            <th class="px-5 py-3">Department</th>
-                            <th class="px-5 py-3">Role</th>
+                            <th class="px-5 py-3">Job Role</th>
                             <th class="px-5 py-3">Status</th>
                             <th class="px-5 py-3 text-right">Actions</th>
                         </tr>
@@ -97,14 +90,7 @@
                                     </div>
                                 </td>
                                 <td class="px-5 py-4 text-on-surface-variant">{{ $recipient->shared_mailbox_email }}</td>
-                                <td class="px-5 py-4">
-                                    @if ($recipient->department)
-                                        <span class="category-pill">{{ $recipient->department }}</span>
-                                    @else
-                                        <span class="text-gray-400">—</span>
-                                    @endif
-                                </td>
-                                <td class="px-5 py-4 text-on-surface-variant">{{ $recipient->role ?? 'Recipient' }}</td>
+                                <td class="px-5 py-4 text-on-surface-variant">{{ $recipient->role ?? '—' }}</td>
                                 <td class="px-5 py-4">
                                     <span class="inline-flex items-center gap-1.5 text-xs font-medium text-on-surface-variant">
                                         <span class="h-2 w-2 rounded-full {{ $statusColor }}"></span>
@@ -117,7 +103,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="6" class="px-5 py-12 text-center text-on-surface-variant">
+                                <td colspan="5" class="px-5 py-12 text-center text-on-surface-variant">
                                     No recipients configured yet. Add shared mailboxes used for report routing.
                                 </td>
                             </tr>

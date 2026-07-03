@@ -22,6 +22,11 @@ class SyncGraphMailboxes implements ShouldBeUnique, ShouldQueue
 
     public int $uniqueFor = 120;
 
+    public function __construct()
+    {
+        $this->onQueue('sync');
+    }
+
     public function uniqueId(): string
     {
         return 'graph-mail-sync-coordinator';

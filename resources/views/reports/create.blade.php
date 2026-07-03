@@ -13,21 +13,6 @@
             @csrf
 
             <div class="form-card space-y-5">
-                <div>
-                    <label for="category_id" class="form-label">
-                        Category <span class="text-danger-500" aria-hidden="true">*</span>
-                    </label>
-                    <select id="category_id" name="category_id" class="form-select" required>
-                        <option value="">Select a category</option>
-                        @foreach ($categories as $category)
-                            <option value="{{ $category->id }}" @selected(old('category_id') == $category->id)>{{ $category->name }}</option>
-                        @endforeach
-                    </select>
-                    @error('category_id')
-                        <p class="form-error">{{ $message }}</p>
-                    @enderror
-                </div>
-
                 <x-directory-picker mode="single" name-prefix="to" label="To" :required="true" placeholder="Search directory contacts..." />
 
                 <x-directory-picker mode="multiple" name-prefix="cc" label="CC" placeholder="Add CC..." />

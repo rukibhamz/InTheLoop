@@ -18,7 +18,6 @@ class StoreReportRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'category_id' => ['required', 'exists:report_categories,id'],
             'to' => ['required', 'array'],
             'to.email' => ['required', 'email', 'max:255'],
             'to.name' => ['nullable', 'string', 'max:255'],

@@ -92,7 +92,6 @@ class GraphMailSync
             'from',
             'subject',
             'bodyPreview',
-            'body',
             'receivedDateTime',
             'sentDateTime',
             'toRecipients',
@@ -153,6 +152,8 @@ class GraphMailSync
         if ($this->shouldSkipMessage($report, $message, $mailbox, $folder)) {
             return false;
         }
+
+        $message = $this->loadMessageBody($mailbox, $message);
 
         $from = $message['from']['emailAddress']['address'] ?? 'unknown@local';
         $bodyText = $this->extractReplyText($message);
@@ -504,6 +505,46 @@ class GraphMailSync
         $preview = EmailReplyStripper::strip(trim($message['bodyPreview'] ?? ''));
 
         return $preview !== '' ? $preview : null;
+    }
+
+    /**
+     * @param  array<string, mixed>  $message
+     * @return array<string, mixed>
+     */
+    private function loadMessageBody(string $mailbox, array $message): array
+    {
+        if (filled($message['body']['content'] ?? null)) {
+            return $message;
+        }
+
+        $graphMessageId = $message['id'] ?? null;
+
+        if (! $graphMessageId) {
+            return $message;
+        }
+
+        try {
+            $token = $this->tokens->getAppToken();
+            $userPath = GraphUserPath::for($mailbox);
+            $url = config('graph.base_url')."/users/{$userPath}/messages/{$graphMessageId}"
+                .'?$select='.urlencode('body,bodyPreview');
+
+            $full = Http::withToken($token)
+                ->timeout(20)
+                ->get($url)
+                ->throw()
+                ->json();
+
+            return array_merge($message, $full);
+        } catch (\Throwable $exception) {
+            Log::warning('GraphMailSync: could not load message body', [
+                'mailbox' => $mailbox,
+                'graph_message_id' => $graphMessageId,
+                'error' => $exception->getMessage(),
+            ]);
+
+            return $message;
+        }
     }
 
     private function importAttachments(

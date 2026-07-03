@@ -63,8 +63,10 @@ php artisan graph:test
 Run a queue worker (required for report email, replies, and status notifications):
 
 ```bash
-php artisan queue:work
+php artisan queue:work --queue=mail,default,sync
 ```
+
+The `mail` queue is checked first so outbound email is not blocked by mailbox sync jobs.
 
 Run the scheduler via cron (directory sync hourly, mail sync every 3 minutes):
 

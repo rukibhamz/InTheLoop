@@ -25,21 +25,23 @@ class GraphReplySender
      */
     public function replyAll(Report $report, User $user, string $bodyText): array
     {
-        $mailbox = $user->shared_mailbox_email;
+        $mailbox = $user->shared_mailbox_email ?: $user->email;
 
         if (! filled($mailbox)) {
             return ['sent' => false, 'reason' => 'no_mailbox', 'graph_message_id' => null];
         }
 
-        $anchor = $this->findAnchorMessage($report, $mailbox);
+        $anchor = $this->findAnchorMessage($report, $mailbox)
+            ?? $this->findAnchorMessage($report, $this->settings->defaultSenderMailbox() ?? '');
 
         if (! $anchor) {
             return ['sent' => false, 'reason' => 'copy_not_synced', 'graph_message_id' => null];
         }
 
-        $token = $this->tokens->getAppToken();
+        $replyMailbox = $anchor->mailbox;
 
-        $userPath = GraphUserPath::for($mailbox);
+        $token = $this->tokens->getAppToken();
+        $userPath = GraphUserPath::for($replyMailbox);
 
         Http::withToken($token)
             ->post(

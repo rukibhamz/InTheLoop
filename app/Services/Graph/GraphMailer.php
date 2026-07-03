@@ -29,15 +29,32 @@ class GraphMailer
     }
 
     /**
+     * Mailbox used for Graph API send operations.
+     * Prefers the submitter's shared mailbox; falls back to the default sender.
+     */
+    public function resolveApiMailbox(?Report $report = null): string
+    {
+        $preferred = $report ? $this->resolveSenderMailbox($report) : null;
+
+        if ($preferred) {
+            return $preferred;
+        }
+
+        $default = $this->settings->defaultSenderMailbox();
+
+        if (! $default) {
+            throw new RuntimeException('No default sender mailbox configured.');
+        }
+
+        return $default;
+    }
+
+    /**
      * @return array{mailbox: string, graph_message_id: ?string, conversation_id: ?string, internet_message_id: ?string}
      */
     public function sendReport(Report $report, string $htmlBody): array
     {
-        $mailbox = $this->resolveSenderMailbox($report);
-
-        if (! $mailbox) {
-            throw new RuntimeException('No shared mailbox configured for outbound delivery.');
-        }
+        $apiMailbox = $this->resolveApiMailbox($report);
 
         $to = $report->participants()
             ->where('type', 'to')
@@ -57,59 +74,47 @@ class GraphMailer
 
         // CC the sending mailbox so a copy lands in Inbox for reply sync when Exchange
         // does not save app-sent mail to the shared mailbox Sent Items folder.
-        $cc = $this->withMailboxCopy($mailbox, $report->user?->name, $to, $cc);
+        $cc = $this->withMailboxCopy($apiMailbox, $report->user?->name, $to, $cc);
 
         $token = $this->tokens->getAppToken();
-        $userPath = GraphUserPath::for($mailbox);
+        $userPath = GraphUserPath::for($apiMailbox);
 
-        $draft = Http::withToken($token)
-            ->post(config('graph.base_url')."/users/{$userPath}/messages", [
-                'subject' => $report->subject,
-                'body' => ['contentType' => 'HTML', 'content' => $htmlBody],
-                'toRecipients' => $this->mapAddresses($to),
-                'ccRecipients' => $this->mapAddresses($cc),
-                'from' => [
-                    'emailAddress' => [
-                        'address' => $mailbox,
-                        'name' => $report->user?->name,
-                    ],
+        $payload = [
+            'subject' => $report->subject,
+            'body' => ['contentType' => 'HTML', 'content' => $htmlBody],
+            'toRecipients' => $this->mapAddresses($to),
+            'ccRecipients' => $this->mapAddresses($cc),
+            'from' => [
+                'emailAddress' => [
+                    'address' => $apiMailbox,
+                    'name' => $report->user?->name,
                 ],
-            ])
-            ->throw()
-            ->json();
+            ],
+        ];
 
-        $messageId = $draft['id'] ?? null;
+        $this->sendMailMessage($token, $userPath, $payload, saveToSentItems: true);
 
-        if (! $messageId) {
-            throw new RuntimeException('Graph did not return a message id when creating the draft.');
-        }
-
-        Http::withToken($token)
-            ->post(config('graph.base_url')."/users/{$userPath}/messages/{$messageId}/send")
-            ->throw();
+        $sentMeta = $this->fetchLatestSentMessage($apiMailbox, $report->subject);
 
         Log::info('GraphMailer: report email sent', [
             'report_id' => $report->id,
-            'mailbox' => $mailbox,
-            'graph_message_id' => $messageId,
-            'conversation_id' => $draft['conversationId'] ?? null,
+            'mailbox' => $apiMailbox,
+            'graph_message_id' => $sentMeta['graph_message_id'] ?? null,
+            'conversation_id' => $sentMeta['conversation_id'] ?? null,
         ]);
 
         return [
-            'mailbox' => $mailbox,
-            'graph_message_id' => $messageId,
-            'conversation_id' => $draft['conversationId'] ?? null,
-            'internet_message_id' => $draft['internetMessageId'] ?? null,
+            'mailbox' => $apiMailbox,
+            'from_email' => $apiMailbox,
+            'graph_message_id' => $sentMeta['graph_message_id'] ?? null,
+            'conversation_id' => $sentMeta['conversation_id'] ?? null,
+            'internet_message_id' => $sentMeta['internet_message_id'] ?? null,
         ];
     }
 
     public function sendSimpleNotification(string $subject, string $htmlBody, string $toEmail, ?string $toName = null): void
     {
-        $mailbox = $this->settings->defaultSenderMailbox();
-
-        if (! $mailbox) {
-            throw new RuntimeException('No default sender mailbox configured.');
-        }
+        $mailbox = $this->resolveApiMailbox();
 
         $token = $this->tokens->getAppToken();
         $userPath = GraphUserPath::for($mailbox);
@@ -120,21 +125,81 @@ class GraphMailer
             $recipient['emailAddress']['name'] = $toName;
         }
 
-        $draft = Http::withToken($token)
-            ->post(config('graph.base_url')."/users/{$userPath}/messages", [
-                'subject' => $subject,
-                'body' => ['contentType' => 'HTML', 'content' => $htmlBody],
-                'toRecipients' => [$recipient],
-                'from' => ['emailAddress' => ['address' => $mailbox]],
-            ])
-            ->throw()
-            ->json();
+        $this->sendMailMessage($token, $userPath, [
+            'subject' => $subject,
+            'body' => ['contentType' => 'HTML', 'content' => $htmlBody],
+            'toRecipients' => [$recipient],
+            'from' => ['emailAddress' => ['address' => $mailbox]],
+        ]);
+    }
 
-        $messageId = $draft['id'] ?? throw new RuntimeException('Graph did not return a message id.');
-
+    /**
+     * @param  array<string, mixed>  $message
+     */
+    private function sendMailMessage(
+        string $token,
+        string $userPath,
+        array $message,
+        bool $saveToSentItems = true
+    ): void {
         Http::withToken($token)
-            ->post(config('graph.base_url')."/users/{$userPath}/messages/{$messageId}/send")
+            ->post(config('graph.base_url')."/users/{$userPath}/sendMail", [
+                'message' => $message,
+                'saveToSentItems' => $saveToSentItems,
+            ])
             ->throw();
+    }
+
+    /**
+     * @return array{graph_message_id: ?string, conversation_id: ?string, internet_message_id: ?string}
+     */
+    private function fetchLatestSentMessage(string $mailbox, string $expectedSubject): array
+    {
+        try {
+            $token = $this->tokens->getAppToken();
+            $userPath = GraphUserPath::for($mailbox);
+            $url = config('graph.base_url')."/users/{$userPath}/mailFolders/sentitems/messages"
+                .'?$top=5&$orderby='.urlencode('sentDateTime desc')
+                .'&$select='.urlencode('id,conversationId,internetMessageId,subject,sentDateTime');
+
+            $messages = Http::withToken($token)
+                ->timeout(30)
+                ->get($url)
+                ->throw()
+                ->json('value') ?? [];
+
+            foreach ($messages as $message) {
+                if (($message['subject'] ?? '') === $expectedSubject) {
+                    return [
+                        'graph_message_id' => $message['id'] ?? null,
+                        'conversation_id' => $message['conversationId'] ?? null,
+                        'internet_message_id' => $message['internetMessageId'] ?? null,
+                    ];
+                }
+            }
+
+            $latest = $messages[0] ?? null;
+
+            if ($latest) {
+                return [
+                    'graph_message_id' => $latest['id'] ?? null,
+                    'conversation_id' => $latest['conversationId'] ?? null,
+                    'internet_message_id' => $latest['internetMessageId'] ?? null,
+                ];
+            }
+        } catch (\Throwable $exception) {
+            Log::warning('GraphMailer: could not fetch sent message metadata', [
+                'mailbox' => $mailbox,
+                'subject' => $expectedSubject,
+                'error' => $exception->getMessage(),
+            ]);
+        }
+
+        return [
+            'graph_message_id' => null,
+            'conversation_id' => null,
+            'internet_message_id' => null,
+        ];
     }
 
     /**
@@ -186,7 +251,7 @@ class GraphMailer
             'report_id' => $report->id,
             'direction' => MessageDirection::Outbound,
             'mailbox' => $mailbox,
-            'from_email' => $mailbox,
+            'from_email' => $sendMeta['from_email'] ?? $mailbox,
             'to_emails' => $to,
             'cc_emails' => $cc,
             'subject' => $report->subject,
