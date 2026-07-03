@@ -42,9 +42,14 @@
                 aria-label="Main navigation"
                 @click="if ($event.target.closest('a')) sidebarOpen = false"
             >
-                <a href="{{ route('reports.index') }}" class="nav-item {{ request()->routeIs('reports.index') ? 'nav-item-active' : '' }}">
+                <a href="{{ route('reports.index') }}" class="nav-item {{ request()->routeIs('reports.*') ? 'nav-item-active' : '' }}">
                     <span class="material-symbols-outlined text-[20px]">description</span>
                     Reports
+                </a>
+
+                <a href="{{ route('announcements.index') }}" class="nav-item {{ request()->routeIs('announcements.*') ? 'nav-item-active' : '' }}">
+                    <span class="material-symbols-outlined text-[20px]">campaign</span>
+                    Announcements
                 </a>
 
                 @if (auth()->user()?->isAdmin())

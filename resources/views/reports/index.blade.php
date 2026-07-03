@@ -11,32 +11,23 @@
             </div>
         </div>
 
-        <div class="mb-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <div class="mb-8 grid gap-4 sm:grid-cols-2">
             <div class="stat-card">
                 <div class="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-primary-50 text-primary-600">
                     <span class="material-symbols-outlined">send</span>
                 </div>
                 <p class="text-xs font-semibold tracking-wide text-on-surface-variant uppercase">Sent</p>
                 <p class="mt-1 text-3xl font-bold text-on-surface">{{ number_format($stats['sent']) }}</p>
-                <p class="mt-1 text-sm text-on-surface-variant">Reports</p>
+                <p class="mt-1 text-sm text-on-surface-variant">Outbound emails</p>
             </div>
 
             <div class="stat-card">
                 <div class="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-info-50 text-info-500">
-                    <span class="material-symbols-outlined">check_circle</span>
+                    <span class="material-symbols-outlined">reply</span>
                 </div>
-                <p class="text-xs font-semibold tracking-wide text-on-surface-variant uppercase">Completed</p>
-                <p class="mt-1 text-3xl font-bold text-on-surface">{{ number_format($stats['completed']) }}</p>
-                <p class="mt-1 text-sm text-on-surface-variant">Reports</p>
-            </div>
-
-            <div class="stat-card sm:col-span-2 xl:col-span-1">
-                <div class="mb-4 flex h-10 w-10 items-center justify-center rounded-lg bg-gray-100 text-gray-500">
-                    <span class="material-symbols-outlined">schedule</span>
-                </div>
-                <p class="text-xs font-semibold tracking-wide text-on-surface-variant uppercase">Average Turnaround</p>
-                <p class="mt-1 text-3xl font-bold text-on-surface">{{ $stats['average_turnaround_days'] }}</p>
-                <p class="mt-1 text-sm text-on-surface-variant">Days</p>
+                <p class="text-xs font-semibold tracking-wide text-on-surface-variant uppercase">Replied</p>
+                <p class="mt-1 text-3xl font-bold text-on-surface">{{ number_format($stats['replied']) }}</p>
+                <p class="mt-1 text-sm text-on-surface-variant">Inbound replies</p>
             </div>
         </div>
 
@@ -68,7 +59,7 @@
         @else
             <div class="grid gap-4 sm:grid-cols-2">
                 @foreach ($reports as $report)
-                            <a href="{{ route('reports.show', $report) }}" class="report-grid-card group block">
+                    <a href="{{ route('reports.show', $report) }}" class="report-grid-card group block">
                         <div class="mb-3">
                             <x-status-badge :status="$report->status" />
                         </div>
@@ -98,8 +89,8 @@
                                 {{ $report->created_at->diffForHumans() }}
                             </time>
                         </div>
-                            </a>
-                        @endforeach
+                    </a>
+                @endforeach
             </div>
 
             <div class="pagination-wrap mt-6">

@@ -50,9 +50,29 @@ class GraphSettings
         $allowed = array_map('strtolower', array_filter(array_merge(
             [$this->defaultSenderMailbox()],
             $this->monitoredMailboxes(),
+            $this->announcementMailboxes(),
         )));
 
         return in_array(strtolower($mailbox), $allowed, true);
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function announcementMailboxes(): array
+    {
+        $fromDb = $this->settings()->graph_announcement_mailboxes;
+
+        if (filled($fromDb)) {
+            return array_values(array_filter(array_map('trim', explode(',', $fromDb))));
+        }
+
+        return config('graph.announcement_mailboxes', []);
+    }
+
+    public function isAnnouncementMailbox(string $mailbox): bool
+    {
+        return in_array(strtolower(trim($mailbox)), array_map('strtolower', $this->announcementMailboxes()), true);
     }
 
     /**
@@ -78,6 +98,8 @@ class GraphSettings
     {
         $mailboxes = $this->monitoredMailboxes();
 
+        $fromAnnouncement = $this->announcementMailboxes();
+
         $fromUsers = \App\Models\User::query()
             ->whereNotNull('shared_mailbox_email')
             ->where('is_active', true)
@@ -94,7 +116,7 @@ class GraphSettings
 
         return array_values(array_unique(array_filter(array_map(
             fn (string $mailbox) => trim($mailbox),
-            array_merge($mailboxes, $fromUsers, $fromRecipients)
+            array_merge($mailboxes, $fromAnnouncement, $fromUsers, $fromRecipients)
         ), fn (string $mailbox) => $this->isPollableMailbox($mailbox))));
     }
 

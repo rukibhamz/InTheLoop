@@ -4,6 +4,7 @@ namespace App\Services\Graph;
 
 use App\Enums\MessageDirection;
 use App\Enums\ReportStatus;
+use App\Models\Announcement;
 use App\Models\Report;
 use App\Models\ReportEvent;
 use App\Models\ReportMessage;
@@ -143,10 +144,18 @@ class GraphMailSync
             return false;
         }
 
+        if (Announcement::query()->where('graph_message_id', $graphMessageId)->exists()) {
+            return false;
+        }
+
+        if ($internetMessageId && Announcement::query()->where('internet_message_id', $internetMessageId)->exists()) {
+            return false;
+        }
+
         $report = $this->findReportForMessage($message);
 
         if (! $report) {
-            return false;
+            return $this->importAnnouncement($mailbox, $folder, $message);
         }
 
         if ($this->shouldSkipMessage($report, $message, $mailbox, $folder)) {
@@ -242,6 +251,67 @@ class GraphMailSync
                 'meta' => ['from' => ReportStatus::Sent->value, 'to' => ReportStatus::InReview->value],
             ]);
         }
+
+        return true;
+    }
+
+    /**
+     * @param  array<string, mixed>  $message
+     */
+    private function importAnnouncement(string $mailbox, string $folder, array $message): bool
+    {
+        if (! $this->settings->isAnnouncementMailbox($mailbox)) {
+            return false;
+        }
+
+        if ($folder !== 'inbox') {
+            return false;
+        }
+
+        $graphMessageId = $message['id'] ?? null;
+
+        if (! $graphMessageId) {
+            return false;
+        }
+
+        $message = $this->loadMessageBody($mailbox, $message);
+
+        $fromAddress = $message['from']['emailAddress'] ?? [];
+        $from = $fromAddress['address'] ?? 'unknown@local';
+        $fromName = $fromAddress['name'] ?? null;
+        $bodyText = $this->extractReplyText($message);
+        $receivedAt = $message['receivedDateTime'] ?? $message['sentDateTime'] ?? now()->toIso8601String();
+
+        $announcement = Announcement::query()->create([
+            'mailbox' => $mailbox,
+            'from_email' => $from,
+            'from_name' => $fromName,
+            'to_emails' => collect($message['toRecipients'] ?? [])
+                ->pluck('emailAddress.address')
+                ->filter()
+                ->values()
+                ->all(),
+            'cc_emails' => collect($message['ccRecipients'] ?? [])
+                ->pluck('emailAddress.address')
+                ->filter()
+                ->values()
+                ->all(),
+            'subject' => $message['subject'] ?? null,
+            'body_html' => $message['body']['content'] ?? null,
+            'body_text' => $bodyText,
+            'graph_message_id' => $graphMessageId,
+            'internet_message_id' => $message['internetMessageId'] ?? null,
+            'conversation_id' => $message['conversationId'] ?? null,
+            'folder' => $folder,
+            'received_at' => $receivedAt,
+        ]);
+
+        $this->importAttachments(
+            $mailbox,
+            $graphMessageId,
+            $announcement,
+            (bool) ($message['hasAttachments'] ?? false)
+        );
 
         return true;
     }
@@ -550,7 +620,7 @@ class GraphMailSync
     private function importAttachments(
         string $mailbox,
         string $graphMessageId,
-        ReportMessage $message,
+        ReportMessage|Announcement $message,
         bool $hasAttachments
     ): void {
         if (! $hasAttachments || $message->attachments()->exists()) {

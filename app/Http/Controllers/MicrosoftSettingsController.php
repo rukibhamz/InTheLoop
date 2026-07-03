@@ -34,6 +34,7 @@ class MicrosoftSettingsController extends Controller
             'graph_client_id' => $request->string('graph_client_id')->toString() ?: null,
             'graph_default_sender_mailbox' => $request->string('graph_default_sender_mailbox')->toString() ?: null,
             'graph_monitored_mailboxes' => $request->string('graph_monitored_mailboxes')->toString() ?: null,
+            'graph_announcement_mailboxes' => $request->string('graph_announcement_mailboxes')->toString() ?: null,
             'microsoft_tenant_id' => $request->string('microsoft_tenant_id')->toString() ?: null,
             'microsoft_client_id' => $request->string('microsoft_client_id')->toString() ?: null,
             'sso_enabled' => $request->boolean('sso_enabled'),

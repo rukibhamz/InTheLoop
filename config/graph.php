@@ -15,6 +15,11 @@ return [
         explode(',', env('GRAPH_MONITORED_MAILBOXES', ''))
     ))),
 
+    'announcement_mailboxes' => array_values(array_filter(array_map(
+        fn (string $mailbox) => trim($mailbox),
+        explode(',', env('GRAPH_ANNOUNCEMENT_MAILBOXES', ''))
+    ))),
+
     'token_cache_key' => 'graph_app_access_token',
 
     'base_url' => 'https://graph.microsoft.com/v1.0',

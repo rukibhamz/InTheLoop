@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Announcement;
 use App\Models\Attachment;
 use App\Models\Report;
 use App\Models\ReportMessage;
@@ -19,6 +20,8 @@ class AttachmentController extends Controller
             $this->authorize('view', $attachable);
         } elseif ($attachable instanceof ReportMessage) {
             $this->authorize('view', $attachable->report);
+        } elseif ($attachable instanceof Announcement) {
+            abort_unless($request->user() !== null, 403);
         } else {
             abort(403);
         }

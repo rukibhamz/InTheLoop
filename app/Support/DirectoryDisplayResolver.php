@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Models\Announcement;
 use App\Models\DirectoryContact;
 use App\Models\Report;
 use App\Models\ReportParticipant;
@@ -33,6 +34,28 @@ class DirectoryDisplayResolver
         foreach ($report->threadMessages as $message) {
             $emails->push($message->from_email);
             $emails = $emails->merge($message->to_emails ?? [])->merge($message->cc_emails ?? []);
+        }
+
+        $resolver->loadFromDirectory($emails);
+
+        return $resolver;
+    }
+
+    /**
+     * @param  Collection<int, Announcement>|iterable<int, Announcement>  $announcements
+     */
+    public static function forAnnouncements(iterable $announcements): self
+    {
+        $resolver = new self;
+        $emails = collect();
+
+        foreach ($announcements as $announcement) {
+            $emails->push($announcement->from_email);
+            $emails = $emails->merge($announcement->to_emails ?? [])->merge($announcement->cc_emails ?? []);
+
+            if (filled($announcement->from_name)) {
+                $resolver->names[strtolower($announcement->from_email)] = $announcement->from_name;
+            }
         }
 
         $resolver->loadFromDirectory($emails);

@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AccountPasswordController;
 use App\Http\Controllers\AccountSettingsController;
+use App\Http\Controllers\AnnouncementController;
 use App\Http\Controllers\AppSettingsController;
 use App\Http\Controllers\AttachmentController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
@@ -56,6 +57,9 @@ Route::middleware('auth')->group(function () {
     Route::post('/reports', [ReportController::class, 'store'])->middleware('throttle:10,1')->name('reports.store');
     Route::get('/reports/{report}', [ReportController::class, 'show'])->name('reports.show');
     Route::post('/reports/{report}/reply', [ReportReplyController::class, 'store'])->name('reports.reply');
+
+    Route::get('/announcements', [AnnouncementController::class, 'index'])->name('announcements.index');
+    Route::get('/announcements/{announcement}', [AnnouncementController::class, 'show'])->name('announcements.show');
 
     Route::get('/reports/{report}/approve/{token}', [ReportApprovalController::class, 'showLink'])->name('reports.approve.link');
     Route::post('/reports/{report}/approve', [ReportApprovalController::class, 'approve'])->name('reports.approve');

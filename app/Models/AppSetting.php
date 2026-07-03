@@ -17,6 +17,7 @@ class AppSetting extends Model
         'graph_client_secret',
         'graph_default_sender_mailbox',
         'graph_monitored_mailboxes',
+        'graph_announcement_mailboxes',
         'microsoft_tenant_id',
         'microsoft_client_id',
         'microsoft_client_secret',

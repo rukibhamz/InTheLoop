@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\MessageDirection;
 use App\Enums\ParticipantType;
 use App\Enums\ReportStatus;
 use App\Http\Requests\StoreReportRequest;
@@ -10,6 +11,7 @@ use App\Models\DirectoryContact;
 use App\Models\Report;
 use App\Models\ReportCategory;
 use App\Models\ReportEvent;
+use App\Models\ReportMessage;
 use App\Models\ReportParticipant;
 use App\Models\User;
 use App\Support\DirectoryDisplayResolver;
@@ -35,19 +37,16 @@ class ReportController extends Controller
                 });
             });
 
-        $approvedReports = (clone $baseQuery)
-            ->whereNotNull('approved_at')
-            ->get(['created_at', 'approved_at']);
-
         $stats = [
-            'sent' => (clone $baseQuery)->where('status', ReportStatus::Sent)->count(),
-            'completed' => (clone $baseQuery)->whereIn('status', [
-                ReportStatus::Approved,
-                ReportStatus::Resolved,
-            ])->count(),
-            'average_turnaround_days' => $approvedReports->isEmpty()
-                ? 0
-                : round($approvedReports->avg(fn (Report $report) => $report->created_at->diffInDays($report->approved_at)), 1),
+            'sent' => ReportMessage::query()
+                ->where('direction', MessageDirection::Outbound)
+                ->whereHas('report', fn ($query) => $this->applyReportVisibility($query, $user))
+                ->count(),
+            'replied' => ReportMessage::query()
+                ->where('direction', MessageDirection::Inbound)
+                ->where('show_in_thread', true)
+                ->whereHas('report', fn ($query) => $this->applyReportVisibility($query, $user))
+                ->count(),
         ];
 
         $reports = (clone $baseQuery)
@@ -163,5 +162,20 @@ class ReportController extends Controller
             ['name' => 'General'],
             ['description' => 'Uncategorized reports']
         )->id;
+    }
+
+    private function applyReportVisibility($query, User $user): void
+    {
+        if ($user->isAdmin()) {
+            return;
+        }
+
+        $query->where(function ($visibility) use ($user) {
+            $visibility->where('user_id', $user->id)
+                ->orWhereHas('participants', function ($participantQuery) use ($user) {
+                    $participantQuery->where('user_id', $user->id)
+                        ->orWhere('email', $user->email);
+                });
+        });
     }
 }
