@@ -395,20 +395,6 @@ class GraphMailSync
             }
         }
 
-        if ($this->isReplySubject($subject)) {
-            return $baseQuery
-                ->whereIn('status', [
-                    ReportStatus::Sent,
-                    ReportStatus::InReview,
-                    ReportStatus::Pending,
-                    ReportStatus::Approved,
-                    ReportStatus::Rejected,
-                    ReportStatus::Failed,
-                ])
-                ->latest('sent_at')
-                ->first();
-        }
-
         return null;
     }
 

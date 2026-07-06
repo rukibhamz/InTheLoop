@@ -2,16 +2,17 @@
 
 namespace App\Services\Graph;
 
-use App\Models\AppSetting;
-use Illuminate\Support\Facades\Cache;
+use App\Services\AppSettingCache;
 
 class GraphSettings
 {
-    public function settings(): AppSetting
+    public function __construct(
+        private readonly AppSettingCache $settingsCache
+    ) {}
+
+    public function settings(): \App\Models\AppSetting
     {
-        return Cache::remember('app_settings', 300, function () {
-            return AppSetting::query()->find(1) ?? new AppSetting;
-        });
+        return $this->settingsCache->settings();
     }
 
     public function isConfigured(): bool
@@ -33,7 +34,7 @@ class GraphSettings
 
     public function clientSecret(): ?string
     {
-        return $this->settings()->graph_client_secret ?: config('graph.client_secret');
+        return $this->settingsCache->graphClientSecret();
     }
 
     public function defaultSenderMailbox(): ?string
@@ -163,6 +164,6 @@ class GraphSettings
 
     public function clearCache(): void
     {
-        Cache::forget('app_settings');
+        $this->settingsCache->clear();
     }
 }

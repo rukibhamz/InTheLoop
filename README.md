@@ -37,6 +37,8 @@ Open `http://127.0.0.1:8000` — the **install wizard** will guide you through:
 
 After installation, sign in at `/login`. Track build progress in [checklist.md](checklist.md).
 
+**Full install & production deployment:** see [DEPLOYMENT.md](DEPLOYMENT.md).
+
 ### Microsoft Graph & SSO
 
 Configure in **App Settings** (`/settings/app`) or via `.env`:

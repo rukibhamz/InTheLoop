@@ -2,16 +2,15 @@
 
 namespace App\Services;
 
-use App\Models\AppSetting;
-use Illuminate\Support\Facades\Cache;
-
 class MicrosoftSettings
 {
-    public function settings(): AppSetting
+    public function __construct(
+        private readonly AppSettingCache $settingsCache
+    ) {}
+
+    public function settings(): \App\Models\AppSetting
     {
-        return Cache::remember('app_settings', 300, function () {
-            return AppSetting::query()->find(1) ?? new AppSetting;
-        });
+        return $this->settingsCache->settings();
     }
 
     public function isConfigured(): bool
@@ -38,7 +37,7 @@ class MicrosoftSettings
 
     public function clientSecret(): ?string
     {
-        return $this->settings()->microsoft_client_secret ?: config('microsoft.client_secret');
+        return $this->settingsCache->microsoftClientSecret();
     }
 
     /**

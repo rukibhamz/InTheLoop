@@ -2,20 +2,17 @@
 
 namespace App\Services;
 
-use App\Models\AppSetting;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 
 class Branding
 {
-    public function settings(): AppSetting
+    public function __construct(
+        private readonly AppSettingCache $settingsCache
+    ) {}
+
+    public function settings(): \App\Models\AppSetting
     {
-        return Cache::remember('app_settings', 300, function () {
-            return AppSetting::query()->find(1) ?? new AppSetting([
-                'org_name' => config('app.name'),
-                'accent_color' => '#4648D4',
-            ]);
-        });
+        return $this->settingsCache->settings();
     }
 
     public function orgName(): string
@@ -65,7 +62,7 @@ class Branding
 
     public function clearCache(): void
     {
-        Cache::forget('app_settings');
+        $this->settingsCache->clear();
     }
 
     private function hexToHsl(string $hex): array
