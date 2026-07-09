@@ -2,9 +2,9 @@
 
 namespace App\Jobs;
 
-use App\Enums\ReportStatus;
-use App\Models\Report;
-use App\Models\ReportEvent;
+use App\Enums\EmailStatus;
+use App\Models\Email;
+use App\Models\EmailEvent;
 use App\Jobs\SyncGraphMailboxes;
 use App\Jobs\SyncGraphMailbox;
 use App\Services\Graph\GraphMailer;
@@ -16,39 +16,39 @@ use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
-class SendReportEmail implements ShouldQueue
+class SendOutboundEmail implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public int $tries = 3;
 
     public function __construct(
-        public Report $report
+        public Email $email
     ) {
         $this->onQueue('mail');
     }
 
     public function handle(GraphMailer $mailer): void
     {
-        $this->report->loadMissing(['user', 'category', 'participants']);
+        $this->email->loadMissing(['user', 'category', 'participants', 'attachments']);
 
-        $html = view('emails.report-submitted', [
-            'report' => $this->report,
+        $html = view('emails.email-submitted', [
+            'email' => $this->email,
         ])->render();
 
         if ($mailer->isConfigured()) {
-            $sendMeta = $mailer->sendReport($this->report, $html);
+            $sendMeta = $mailer->sendEmail($this->email, $html);
             $mailbox = $sendMeta['mailbox'];
-            $mailer->recordOutboundMessage($this->report, $mailbox, $sendMeta, null, false);
+            $mailer->recordOutboundMessage($this->email, $mailbox, $sendMeta, null, false);
 
-            $this->report->update([
-                'status' => ReportStatus::Sent,
+            $this->email->update([
+                'status' => EmailStatus::Sent,
                 'sent_at' => now(),
                 'conversation_id' => $sendMeta['conversation_id'] ?? null,
             ]);
 
-            ReportEvent::query()->create([
-                'report_id' => $this->report->id,
+            EmailEvent::query()->create([
+                'email_id' => $this->email->id,
                 'type' => 'sent',
                 'meta' => [
                     'mailbox' => $mailbox,
@@ -59,26 +59,26 @@ class SendReportEmail implements ShouldQueue
 
             SyncGraphMailboxes::startPollingLoop(45);
 
-            foreach (app(\App\Services\Graph\GraphSettings::class)->mailboxesForReport($this->report) as $mailbox) {
+            foreach (app(\App\Services\Graph\GraphSettings::class)->mailboxesForEmail($this->email) as $mailbox) {
                 SyncGraphMailbox::dispatch($mailbox)->delay(now()->addSeconds(60));
             }
 
             return;
         }
 
-        Log::info('SendReportEmail mock dispatch', [
-            'report_id' => $this->report->id,
-            'subject' => $this->report->subject,
+        Log::info('SendOutboundEmail mock dispatch', [
+            'email_id' => $this->email->id,
+            'subject' => $this->email->subject,
         ]);
 
-        $this->report->update([
-            'status' => ReportStatus::Sent,
+        $this->email->update([
+            'status' => EmailStatus::Sent,
             'sent_at' => now(),
-            'conversation_id' => 'mock-'.$this->report->id,
+            'conversation_id' => 'mock-'.$this->email->id,
         ]);
 
-        ReportEvent::query()->create([
-            'report_id' => $this->report->id,
+        EmailEvent::query()->create([
+            'email_id' => $this->email->id,
             'type' => 'sent',
             'meta' => ['mock' => true],
         ]);
@@ -86,10 +86,10 @@ class SendReportEmail implements ShouldQueue
 
     public function failed(?Throwable $exception): void
     {
-        $this->report->update(['status' => ReportStatus::Failed]);
+        $this->email->update(['status' => EmailStatus::Failed]);
 
-        ReportEvent::query()->create([
-            'report_id' => $this->report->id,
+        EmailEvent::query()->create([
+            'email_id' => $this->email->id,
             'type' => 'failed',
             'meta' => ['message' => $exception?->getMessage()],
         ]);

@@ -11,7 +11,7 @@ class SyncGraphMail extends Command
 {
     protected $signature = 'graph:sync-mail';
 
-    protected $description = 'Poll monitored shared mailboxes for inbound report replies';
+    protected $description = 'Poll monitored shared mailboxes for inbound email replies';
 
     public function handle(GraphSettings $settings, GraphMailSync $sync): int
     {

@@ -3,11 +3,11 @@
 namespace App\Services\Graph;
 
 use App\Enums\MessageDirection;
-use App\Enums\ReportStatus;
+use App\Enums\EmailStatus;
 use App\Models\Announcement;
-use App\Models\Report;
-use App\Models\ReportEvent;
-use App\Models\ReportMessage;
+use App\Models\Email;
+use App\Models\EmailEvent;
+use App\Models\EmailMessage;
 use App\Support\EmailReplyStripper;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -136,11 +136,11 @@ class GraphMailSync
             return false;
         }
 
-        if (ReportMessage::query()->where('graph_message_id', $graphMessageId)->exists()) {
+        if (EmailMessage::query()->where('graph_message_id', $graphMessageId)->exists()) {
             return false;
         }
 
-        if ($internetMessageId && ReportMessage::query()->where('internet_message_id', $internetMessageId)->exists()) {
+        if ($internetMessageId && EmailMessage::query()->where('internet_message_id', $internetMessageId)->exists()) {
             return false;
         }
 
@@ -152,13 +152,13 @@ class GraphMailSync
             return false;
         }
 
-        $report = $this->findReportForMessage($message);
+        $email = $this->findEmailForMessage($message);
 
-        if (! $report) {
+        if (! $email) {
             return $this->importAnnouncement($mailbox, $folder, $message);
         }
 
-        if ($this->shouldSkipMessage($report, $message, $mailbox, $folder)) {
+        if ($this->shouldSkipMessage($email, $message, $mailbox, $folder)) {
             return false;
         }
 
@@ -167,7 +167,7 @@ class GraphMailSync
         $from = $message['from']['emailAddress']['address'] ?? 'unknown@local';
         $bodyText = $this->extractReplyText($message);
 
-        if ($existing = $this->findExistingInAppOutbound($report, $from, $folder, $bodyText)) {
+        if ($existing = $this->findExistingInAppOutbound($email, $from, $folder, $bodyText)) {
             $existing->update([
                 'graph_message_id' => $graphMessageId,
                 'internet_message_id' => $internetMessageId,
@@ -189,14 +189,14 @@ class GraphMailSync
             return false;
         }
 
-        $direction = $this->isSubmitterAddress($report, $from)
+        $direction = $this->isSubmitterAddress($email, $from)
             ? MessageDirection::Outbound
             : MessageDirection::Inbound;
 
-        $showInThread = ! $this->isSenderMailboxCopy($report, $message, $from);
+        $showInThread = ! $this->isSenderMailboxCopy($email, $message, $from);
 
-        $reportMessage = ReportMessage::query()->create([
-            'report_id' => $report->id,
+        $emailMessage = EmailMessage::query()->create([
+            'email_id' => $email->id,
             'direction' => $direction,
             'mailbox' => $mailbox,
             'from_email' => $from,
@@ -222,16 +222,16 @@ class GraphMailSync
         $this->importAttachments(
             $mailbox,
             $graphMessageId,
-            $reportMessage,
+            $emailMessage,
             (bool) ($message['hasAttachments'] ?? false)
         );
 
-        if (! $report->conversation_id) {
-            $report->update(['conversation_id' => $conversationId]);
+        if (! $email->conversation_id) {
+            $email->update(['conversation_id' => $conversationId]);
         }
 
-        ReportEvent::query()->create([
-            'report_id' => $report->id,
+        EmailEvent::query()->create([
+            'email_id' => $email->id,
             'type' => 'replied',
             'meta' => [
                 'source' => 'graph_sync',
@@ -242,13 +242,13 @@ class GraphMailSync
             ],
         ]);
 
-        if ($report->status === ReportStatus::Sent) {
-            $report->update(['status' => ReportStatus::InReview]);
+        if ($email->status === EmailStatus::Sent) {
+            $email->update(['status' => EmailStatus::InReview]);
 
-            ReportEvent::query()->create([
-                'report_id' => $report->id,
+            EmailEvent::query()->create([
+                'email_id' => $email->id,
                 'type' => 'status_changed',
-                'meta' => ['from' => ReportStatus::Sent->value, 'to' => ReportStatus::InReview->value],
+                'meta' => ['from' => EmailStatus::Sent->value, 'to' => EmailStatus::InReview->value],
             ]);
         }
 
@@ -319,15 +319,15 @@ class GraphMailSync
     /**
      * @param  array<string, mixed>  $message
      */
-    public function debugMatchReport(array $message): ?Report
+    public function debugMatchEmail(array $message): ?Email
     {
-        return $this->findReportForMessage($message);
+        return $this->findEmailForMessage($message);
     }
 
     /**
      * @param  array<string, mixed>  $message
      */
-    private function findReportForMessage(array $message): ?Report
+    private function findEmailForMessage(array $message): ?Email
     {
         $subject = $message['subject'] ?? '';
         $normalizedSubject = $this->normalizeSubject($subject);
@@ -335,18 +335,18 @@ class GraphMailSync
         $conversationId = $message['conversationId'] ?? null;
 
         if ($conversationId) {
-            $report = Report::query()->where('conversation_id', $conversationId)->first();
+            $email = Email::query()->where('conversation_id', $conversationId)->first();
 
-            if ($report) {
-                return $report;
+            if ($email) {
+                return $email;
             }
 
-            $reportId = ReportMessage::query()
+            $emailId = EmailMessage::query()
                 ->where('conversation_id', $conversationId)
-                ->value('report_id');
+                ->value('email_id');
 
-            if ($reportId) {
-                return Report::query()->find($reportId);
+            if ($emailId) {
+                return Email::query()->find($emailId);
             }
         }
 
@@ -354,7 +354,7 @@ class GraphMailSync
             return null;
         }
 
-        $baseQuery = Report::query()
+        $baseQuery = Email::query()
             ->whereNotNull('sent_at')
             ->where('subject', $normalizedSubject);
 
@@ -375,7 +375,7 @@ class GraphMailSync
                 return $participantMatch;
             }
 
-            $threadMatch = Report::query()
+            $threadMatch = Email::query()
                 ->whereNotNull('sent_at')
                 ->whereHas('messages', function ($messages) use ($conversationId, $from) {
                     if ($conversationId) {
@@ -406,17 +406,17 @@ class GraphMailSync
     /**
      * @param  array<string, mixed>  $message
      */
-    private function isSenderMailboxCopy(Report $report, array $message, string $from): bool
+    private function isSenderMailboxCopy(Email $email, array $message, string $from): bool
     {
         if ($this->isReplySubject($message['subject'] ?? '')) {
             return false;
         }
 
-        return $this->isSubmitterAddress($report, $from)
-            && ($message['subject'] ?? '') === $report->subject;
+        return $this->isSubmitterAddress($email, $from)
+            && ($message['subject'] ?? '') === $email->subject;
     }
 
-    private function findReportBySubject(?string $subject): ?Report
+    private function findEmailBySubject(?string $subject): ?Email
     {
         if (! filled($subject)) {
             return null;
@@ -424,14 +424,14 @@ class GraphMailSync
 
         $normalized = $this->normalizeSubject($subject);
 
-        return Report::query()
+        return Email::query()
             ->whereIn('status', [
-                ReportStatus::Sent,
-                ReportStatus::InReview,
-                ReportStatus::Pending,
-                ReportStatus::Approved,
-                ReportStatus::Rejected,
-                ReportStatus::Failed,
+                EmailStatus::Sent,
+                EmailStatus::InReview,
+                EmailStatus::Pending,
+                EmailStatus::Approved,
+                EmailStatus::Rejected,
+                EmailStatus::Failed,
             ])
             ->where(function ($query) use ($subject, $normalized) {
                 $query->where('subject', $subject)
@@ -460,26 +460,26 @@ class GraphMailSync
     }
 
     private function findExistingInAppOutbound(
-        Report $report,
+        Email $email,
         string $from,
         string $folder,
         ?string $bodyText
-    ): ?ReportMessage {
-        if ($folder !== 'sentitems' || ! $this->isSubmitterAddress($report, $from) || ! filled($bodyText)) {
+    ): ?EmailMessage {
+        if ($folder !== 'sentitems' || ! $this->isSubmitterAddress($email, $from) || ! filled($bodyText)) {
             return null;
         }
 
         $needle = strtolower(trim($bodyText));
 
-        return ReportMessage::query()
-            ->where('report_id', $report->id)
+        return EmailMessage::query()
+            ->where('email_id', $email->id)
             ->where('direction', MessageDirection::Outbound)
             ->whereNull('graph_message_id')
             ->where('created_at', '>=', now()->subHours(2))
             ->whereRaw('lower(from_email) = ?', [strtolower($from)])
             ->orderByDesc('created_at')
             ->get()
-            ->first(function (ReportMessage $message) use ($needle) {
+            ->first(function (EmailMessage $message) use ($needle) {
                 $candidate = strtolower(trim($message->body_text ?? strip_tags($message->body_html ?? '')));
 
                 return $candidate === $needle;
@@ -489,7 +489,7 @@ class GraphMailSync
     /**
      * @param  array<string, mixed>  $message
      */
-    private function shouldSkipMessage(Report $report, array $message, string $mailbox, string $folder): bool
+    private function shouldSkipMessage(Email $email, array $message, string $mailbox, string $folder): bool
     {
         if ($folder === 'sentitems') {
             return false;
@@ -497,39 +497,39 @@ class GraphMailSync
 
         $from = $message['from']['emailAddress']['address'] ?? '';
 
-        if (! $this->isSubmitterAddress($report, $from)) {
+        if (! $this->isSubmitterAddress($email, $from)) {
             return false;
         }
 
-        if (($message['subject'] ?? '') !== $report->subject) {
+        if (($message['subject'] ?? '') !== $email->subject) {
             return false;
         }
 
         // Keep the sender's own inbox copy (CC) for Graph reply threading.
-        if (in_array(strtolower($mailbox), $this->submitterAddresses($report), true)) {
+        if (in_array(strtolower($mailbox), $this->submitterAddresses($email), true)) {
             return false;
         }
 
         return true;
     }
 
-    private function isSubmitterAddress(Report $report, string $email): bool
+    private function isSubmitterAddress(Email $email, string $address): bool
     {
-        $email = strtolower($email);
+        $address = strtolower($address);
 
-        return in_array($email, $this->submitterAddresses($report), true);
+        return in_array($address, $this->submitterAddresses($email), true);
     }
 
     /**
      * @return list<string>
      */
-    private function submitterAddresses(Report $report): array
+    private function submitterAddresses(Email $email): array
     {
         return array_values(array_filter(array_map(
             'strtolower',
             [
-                $report->user?->email,
-                $report->user?->shared_mailbox_email,
+                $email->user?->email,
+                $email->user?->shared_mailbox_email,
             ]
         )));
     }
@@ -606,7 +606,7 @@ class GraphMailSync
     private function importAttachments(
         string $mailbox,
         string $graphMessageId,
-        ReportMessage|Announcement $message,
+        EmailMessage|Announcement $message,
         bool $hasAttachments
     ): void {
         if (! $hasAttachments || $message->attachments()->exists()) {

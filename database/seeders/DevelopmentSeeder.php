@@ -3,7 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\DirectoryContact;
-use App\Models\ReportCategory;
+use App\Models\EmailCategory;
 use Illuminate\Database\Seeder;
 
 class DevelopmentSeeder extends Seeder
@@ -18,7 +18,7 @@ class DevelopmentSeeder extends Seeder
         ];
 
         foreach ($categories as $category) {
-            ReportCategory::query()->firstOrCreate(['name' => $category['name']], $category);
+            EmailCategory::query()->firstOrCreate(['name' => $category['name']], $category);
         }
 
         $contacts = [

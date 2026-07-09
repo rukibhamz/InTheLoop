@@ -5,7 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreRecipientRequest;
 use App\Http\Requests\UpdateRecipientRequest;
 use App\Models\Recipient;
-use App\Models\Report;
+use App\Models\Email;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -36,7 +36,7 @@ class RecipientController extends Controller
         $stats = [
             'total' => Recipient::query()->count(),
             'admins' => User::query()->where('is_admin', true)->count(),
-            'active_threads' => Report::query()->whereIn('status', ['sent', 'in_review', 'pending'])->count(),
+            'active_threads' => Email::query()->whereIn('status', ['sent', 'in_review', 'pending'])->count(),
             'pending_invites' => User::query()->where('is_active', false)->count(),
         ];
 

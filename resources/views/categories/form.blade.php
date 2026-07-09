@@ -44,7 +44,7 @@
             </div>
         </form>
 
-        @if ($category->exists && ! $category->reports()->exists())
+        @if ($category->exists && ! $category->emails()->exists())
             <form method="POST" action="{{ route('categories.destroy', $category) }}" class="mt-6" onsubmit="return confirm('Delete this category?')">
                 @csrf
                 @method('DELETE')

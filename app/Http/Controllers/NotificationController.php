@@ -2,8 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Report;
-use App\Models\ReportEvent;
+use App\Models\EmailEvent;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -13,10 +12,10 @@ class NotificationController extends Controller
     {
         $user = $request->user();
 
-        $events = ReportEvent::query()
-            ->with('report:id,subject')
+        $events = EmailEvent::query()
+            ->with('email:id,subject')
             ->whereIn('type', ['sent', 'approved', 'rejected', 'replied', 'created'])
-            ->whereHas('report', function ($query) use ($user) {
+            ->whereHas('email', function ($query) use ($user) {
                 $query->where('user_id', $user->id)
                     ->orWhereHas('participants', function ($participantQuery) use ($user) {
                         $participantQuery->where('user_id', $user->id)
@@ -26,13 +25,13 @@ class NotificationController extends Controller
             ->latest()
             ->limit(10)
             ->get()
-            ->map(fn (ReportEvent $event) => [
+            ->map(fn (EmailEvent $event) => [
                 'id' => $event->id,
                 'type' => $event->type,
-                'subject' => $event->report?->subject,
-                'report_id' => $event->report_id,
+                'subject' => $event->email?->subject,
+                'email_id' => $event->email_id,
                 'time' => $event->created_at->diffForHumans(),
-                'url' => $event->report_id ? route('reports.show', $event->report_id) : null,
+                'url' => $event->email_id ? route('emails.show', $event->email_id) : null,
             ]);
 
         return response()->json(['notifications' => $events]);

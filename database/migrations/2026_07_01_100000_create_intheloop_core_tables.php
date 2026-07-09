@@ -28,17 +28,17 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        Schema::create('report_categories', function (Blueprint $table) {
+        Schema::create('email_categories', function (Blueprint $table) {
             $table->id();
             $table->string('name');
             $table->text('description')->nullable();
             $table->timestamps();
         });
 
-        Schema::create('reports', function (Blueprint $table) {
+        Schema::create('emails', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('category_id')->constrained('report_categories');
+            $table->foreignId('category_id')->constrained('email_categories');
             $table->string('subject');
             $table->text('body');
             $table->string('status')->default('pending');
@@ -49,9 +49,9 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        Schema::create('report_participants', function (Blueprint $table) {
+        Schema::create('email_participants', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('report_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('email_id')->constrained('emails')->cascadeOnDelete();
             $table->string('email');
             $table->string('name')->nullable();
             $table->string('type');
@@ -59,9 +59,9 @@ return new class extends Migration
             $table->timestamp('created_at')->useCurrent();
         });
 
-        Schema::create('report_messages', function (Blueprint $table) {
+        Schema::create('email_messages', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('report_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('email_id')->constrained('emails')->cascadeOnDelete();
             $table->string('direction');
             $table->string('mailbox');
             $table->string('from_email');
@@ -86,9 +86,9 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        Schema::create('report_events', function (Blueprint $table) {
+        Schema::create('email_events', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('report_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('email_id')->constrained('emails')->cascadeOnDelete();
             $table->string('type');
             $table->json('meta')->nullable();
             $table->timestamp('created_at')->useCurrent();
@@ -97,12 +97,12 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::dropIfExists('report_events');
+        Schema::dropIfExists('email_events');
         Schema::dropIfExists('attachments');
-        Schema::dropIfExists('report_messages');
-        Schema::dropIfExists('report_participants');
-        Schema::dropIfExists('reports');
-        Schema::dropIfExists('report_categories');
+        Schema::dropIfExists('email_messages');
+        Schema::dropIfExists('email_participants');
+        Schema::dropIfExists('emails');
+        Schema::dropIfExists('email_categories');
         Schema::dropIfExists('directory_contacts');
         Schema::dropIfExists('recipients');
     }

@@ -2,7 +2,7 @@
 
 namespace App\Jobs;
 
-use App\Models\Report;
+use App\Models\Email;
 use App\Models\User;
 use App\Services\Branding;
 use App\Services\Graph\GraphMailer;
@@ -13,27 +13,27 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
 
-class SendReportStatusNotification implements ShouldQueue
+class SendEmailStatusNotification implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public function __construct(
-        public Report $report,
+        public Email $email,
         public string $statusLabel,
         public ?int $actorUserId = null
     ) {}
 
     public function handle(GraphMailer $mailer, Branding $branding): void
     {
-        $this->report->loadMissing(['user', 'participants', 'category']);
+        $this->email->loadMissing(['user', 'participants', 'category']);
 
         $actor = $this->actorUserId
             ? User::query()->find($this->actorUserId)
             : null;
 
-        $recipients = $this->report->participants
+        $recipients = $this->email->participants
             ->pluck('email')
-            ->push($this->report->user?->email)
+            ->push($this->email->user?->email)
             ->filter()
             ->unique()
             ->values();
@@ -44,8 +44,8 @@ class SendReportStatusNotification implements ShouldQueue
             ->get()
             ->keyBy('email');
 
-        $emailsToNotify = $recipients->filter(function (string $email) use ($appUsers) {
-            $user = $appUsers->get($email);
+        $emailsToNotify = $recipients->filter(function (string $address) use ($appUsers) {
+            $user = $appUsers->get($address);
 
             return ! $user || $user->notificationEnabled('status_changes', 'email');
         });
@@ -54,18 +54,18 @@ class SendReportStatusNotification implements ShouldQueue
             return;
         }
 
-        $html = view('emails.report-status-changed', [
-            'report' => $this->report,
+        $html = view('emails.email-status-changed', [
+            'email' => $this->email,
             'statusLabel' => $this->statusLabel,
             'actorName' => $actor?->name,
             'orgName' => $branding->orgName(),
             'logoUrl' => $branding->logoUrl(),
-            'reportUrl' => route('reports.show', $this->report),
+            'emailUrl' => route('emails.show', $this->email),
         ])->render();
 
         if (! $mailer->isConfigured()) {
-            Log::info('Report status notification (mock)', [
-                'report_id' => $this->report->id,
+            Log::info('Email status notification (mock)', [
+                'email_id' => $this->email->id,
                 'status' => $this->statusLabel,
                 'recipients' => $emailsToNotify->all(),
             ]);
@@ -73,11 +73,11 @@ class SendReportStatusNotification implements ShouldQueue
             return;
         }
 
-        foreach ($emailsToNotify as $email) {
+        foreach ($emailsToNotify as $address) {
             $mailer->sendSimpleNotification(
-                subject: "Report {$this->statusLabel}: {$this->report->subject}",
+                subject: "Email {$this->statusLabel}: {$this->email->subject}",
                 htmlBody: $html,
-                toEmail: $email
+                toEmail: $address
             );
         }
     }

@@ -52,13 +52,13 @@
                     <div>
                         <label for="graph_monitored_mailboxes" class="form-label">Additional Monitored Mailboxes</label>
                         <input id="graph_monitored_mailboxes" name="graph_monitored_mailboxes" type="text" class="form-input" value="{{ old('graph_monitored_mailboxes', $settings->graph_monitored_mailboxes) }}" placeholder="comma-separated emails">
-                        <p class="mt-1 text-xs text-on-surface-variant">Shared mailboxes polled for report thread replies. User and recipient mailboxes are included automatically.</p>
+                        <p class="mt-1 text-xs text-on-surface-variant">Shared mailboxes polled for email thread replies. User and recipient mailboxes are included automatically.</p>
                         @error('graph_monitored_mailboxes')<p class="form-error">{{ $message }}</p>@enderror
                     </div>
                     <div class="sm:col-span-2">
                         <label for="graph_announcement_mailboxes" class="form-label">Announcement / Group Mailboxes</label>
                         <input id="graph_announcement_mailboxes" name="graph_announcement_mailboxes" type="text" class="form-input" value="{{ old('graph_announcement_mailboxes', $settings->graph_announcement_mailboxes) }}" placeholder="e.g. allstaff@company.com, hr-announcements@company.com">
-                        <p class="mt-1 text-xs text-on-surface-variant">Mail-enabled groups or distribution lists. Unmatched inbox mail is captured as Announcements instead of reports.</p>
+                        <p class="mt-1 text-xs text-on-surface-variant">Mail-enabled groups or distribution lists. Unmatched inbox mail is captured as Announcements instead of email threads.</p>
                         @error('graph_announcement_mailboxes')<p class="form-error">{{ $message }}</p>@enderror
                     </div>
                 </div>

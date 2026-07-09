@@ -5,12 +5,12 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class ReportEvent extends Model
+class EmailEvent extends Model
 {
     public $timestamps = false;
 
     protected $fillable = [
-        'report_id',
+        'email_id',
         'type',
         'meta',
     ];
@@ -25,13 +25,13 @@ class ReportEvent extends Model
 
     protected static function booted(): void
     {
-        static::creating(function (ReportEvent $event) {
+        static::creating(function (EmailEvent $event) {
             $event->created_at ??= now();
         });
     }
 
-    public function report(): BelongsTo
+    public function email(): BelongsTo
     {
-        return $this->belongsTo(Report::class);
+        return $this->belongsTo(Email::class);
     }
 }

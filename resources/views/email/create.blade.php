@@ -1,15 +1,15 @@
 @extends('layouts.app')
 
-@section('title', 'New Report')
+@section('title', 'New Email')
 
 @section('content')
     <div class="mx-auto max-w-3xl">
         <div class="mb-6">
-            <h1 class="page-title">New Report</h1>
-            <p class="mt-1 text-sm text-on-surface-variant">Submit an internal report for review and approval.</p>
+            <h1 class="page-title">New Email</h1>
+            <p class="mt-1 text-sm text-on-surface-variant">Compose and send an internal email for review and approval.</p>
         </div>
 
-        <form method="POST" action="{{ route('reports.store') }}" enctype="multipart/form-data">
+        <form method="POST" action="{{ route('emails.store') }}" enctype="multipart/form-data">
             @csrf
 
             <div class="form-card space-y-5">
@@ -31,7 +31,7 @@
                     <label for="body" class="form-label">
                         Description <span class="text-danger-500" aria-hidden="true">*</span>
                     </label>
-                    <textarea id="body" name="body" class="form-textarea min-h-[160px]" placeholder="Provide detailed information regarding the report..." required>{{ old('body') }}</textarea>
+                    <textarea id="body" name="body" class="form-textarea min-h-[160px]" placeholder="Write your message..." required>{{ old('body') }}</textarea>
                     @error('body')
                         <p class="form-error">{{ $message }}</p>
                     @enderror
@@ -56,10 +56,10 @@
                 </div>
 
                 <div class="flex flex-col-reverse gap-3 border-t border-gray-100 pt-6 sm:flex-row sm:justify-end">
-                    <a href="{{ route('reports.index') }}" class="btn-ghost justify-center sm:justify-start">Cancel</a>
+                    <a href="{{ route('emails.index') }}" class="btn-ghost justify-center sm:justify-start">Cancel</a>
                     <button type="submit" class="btn-primary gap-2">
                         <span class="material-symbols-outlined text-[18px]">send</span>
-                        Submit Report
+                        Send Email
                     </button>
                 </div>
             </div>
@@ -67,7 +67,7 @@
 
         <div class="info-banner mt-6">
             <span class="material-symbols-outlined shrink-0 text-primary-500">info</span>
-            <p>Reports are automatically logged and shared with the selected recipients. You can track the approval progress in your <strong>Reports</strong> dashboard.</p>
+            <p>Emails are automatically logged and shared with the selected recipients. You can track replies and approval progress in your <strong>Email</strong> inbox.</p>
         </div>
     </div>
 @endsection

@@ -10,13 +10,13 @@ InTheLoop is an internal reporting app for staff who use **shared mailboxes** (n
 
 | Area | What it does |
 |------|----------------|
-| **Reports** | Staff submit reports; email goes to To/Cc via Graph; replies sync into a thread |
-| **Announcements** | Group/distribution-list mail captured separately (not mixed with reports) |
+| **Emails** | Staff submit emails; mail goes to To/Cc via Graph; replies sync into a thread |
+| **Announcements** | Group/distribution-list mail captured separately (not mixed with emails) |
 | **Directory** | To/Cc picker searches Azure AD contacts (`directory:sync`) |
 | **SSO** | Optional Microsoft sign-in (Entra ID) |
 | **Admin** | Users, recipients, categories, branding, Microsoft settings |
 
-**Background jobs are required.** Without a queue worker, reports will sit in “pending” and email will not send.
+**Background jobs are required.** Without a queue worker, emails will sit in “pending” and mail will not send.
 
 ---
 
@@ -55,7 +55,7 @@ Do this **before** or **in parallel** with the app install so Graph works immedi
 
 | Permission | Purpose |
 |------------|---------|
-| `Mail.Send` | Send report emails and replies |
+| `Mail.Send` | Send emails and replies |
 | `Mail.Read` | Poll inboxes/sent items for sync |
 | `User.Read.All` | Directory sync + To/Cc typeahead |
 
@@ -231,7 +231,7 @@ Sign in as admin and complete these in order.
 |-------|---------|
 | **Graph Tenant / Client ID / Secret** | App-only mail + directory (from §3) |
 | **Default Sender Mailbox** | Fallback From address for Graph send |
-| **Additional Monitored Mailboxes** | Extra shared mailboxes to poll for report replies |
+| **Additional Monitored Mailboxes** | Extra shared mailboxes to poll for email replies |
 | **Announcement / Group Mailboxes** | Distribution lists; unmatched inbox mail → **Announcements** view |
 | **SSO Tenant / Client ID / Secret** | Often same app as Graph; can differ |
 | **Enable Microsoft sign-in** | Shows “Sign in with Microsoft” on login page |
@@ -271,7 +271,7 @@ Shared mailboxes used for **routing** and default To targets. Their addresses ar
 
 ### 6.6 Categories (`/categories`) *(optional)*
 
-Reports default to category **General** if none is selected on the form. Categories still support routing rules if you use them.
+Emails default to category **General** if none is selected on the form. Categories still support routing rules if you use them.
 
 ---
 
@@ -349,11 +349,11 @@ Use this after deployment to confirm the full loop works.
 - [ ] Queue worker running (`mail,default,sync`)
 - [ ] Cron / scheduler active
 - [ ] `php artisan directory:sync` returns contact count > 0
-- [ ] **New report:** `/reports/create` → pick To from directory → submit
-- [ ] Report status moves to **Sent** (queue processed)
+- [ ] **New email:** `/emails/create` → pick To from directory → submit
+- [ ] Email status moves to **Sent** (queue processed)
 - [ ] Recipient receives email in Outlook
-- [ ] Reply from Outlook appears in report thread within ~3–5 minutes
-- [ ] **Announcements:** send test mail to a configured group address → appears under `/announcements` (not Reports)
+- [ ] Reply from Outlook appears in email thread within ~3–5 minutes
+- [ ] **Announcements:** send test mail to a configured group address → appears under `/announcements` (not Emails)
 - [ ] **SSO:** Microsoft login works for a user in the assigned Entra group
 - [ ] Shared mailbox on user profile matches their primary/send address
 
@@ -405,7 +405,7 @@ MICROSOFT_REDIRECT_URI="${APP_URL}/auth/microsoft/callback"
 
 | Symptom | Likely cause | Action |
 |---------|----------------|--------|
-| Report stuck on Pending | Queue worker not running | Start `queue:work --queue=mail,default,sync` |
+| Email stuck on Pending | Queue worker not running | Start `queue:work --queue=mail,default,sync` |
 | Email never sends | Graph 403 / policy | Run `graph:test`; fix Application Access Policy |
 | Replies not appearing | Sync not running | Check scheduler + sync queue; verify mailbox in monitored list |
 | To/Cc picker empty | Directory not synced | `php artisan directory:sync` |

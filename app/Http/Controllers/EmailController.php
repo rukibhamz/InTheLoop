@@ -4,15 +4,15 @@ namespace App\Http\Controllers;
 
 use App\Enums\MessageDirection;
 use App\Enums\ParticipantType;
-use App\Enums\ReportStatus;
-use App\Http\Requests\StoreReportRequest;
-use App\Jobs\SendReportEmail;
+use App\Enums\EmailStatus;
+use App\Http\Requests\StoreEmailRequest;
+use App\Jobs\SendOutboundEmail;
 use App\Models\DirectoryContact;
-use App\Models\Report;
-use App\Models\ReportCategory;
-use App\Models\ReportEvent;
-use App\Models\ReportMessage;
-use App\Models\ReportParticipant;
+use App\Models\Email;
+use App\Models\EmailCategory;
+use App\Models\EmailEvent;
+use App\Models\EmailMessage;
+use App\Models\EmailParticipant;
 use App\Models\User;
 use App\Support\DirectoryDisplayResolver;
 use Illuminate\Http\RedirectResponse;
@@ -20,13 +20,13 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
-class ReportController extends Controller
+class EmailController extends Controller
 {
     public function index(Request $request): View
     {
         $user = $request->user();
 
-        $baseQuery = Report::query()
+        $baseQuery = Email::query()
             ->when(! $user->isAdmin(), function ($query) use ($user) {
                 $query->where(function ($visibility) use ($user) {
                     $visibility->where('user_id', $user->id)
@@ -38,18 +38,18 @@ class ReportController extends Controller
             });
 
         $stats = [
-            'sent' => ReportMessage::query()
+            'sent' => EmailMessage::query()
                 ->where('direction', MessageDirection::Outbound)
-                ->whereHas('report', fn ($query) => $this->applyReportVisibility($query, $user))
+                ->whereHas('email', fn ($query) => $this->applyEmailVisibility($query, $user))
                 ->count(),
-            'replied' => ReportMessage::query()
+            'replied' => EmailMessage::query()
                 ->where('direction', MessageDirection::Inbound)
                 ->where('show_in_thread', true)
-                ->whereHas('report', fn ($query) => $this->applyReportVisibility($query, $user))
+                ->whereHas('email', fn ($query) => $this->applyEmailVisibility($query, $user))
                 ->count(),
         ];
 
-        $reports = (clone $baseQuery)
+        $emails = (clone $baseQuery)
             ->with(['category', 'participants', 'user'])
             ->withCount('messages')
             ->when($request->filled('status'), function ($query) use ($request) {
@@ -59,36 +59,36 @@ class ReportController extends Controller
             ->paginate(12)
             ->withQueryString();
 
-        return view('reports.index', compact('reports', 'stats'));
+        return view('email.index', compact('emails', 'stats'));
     }
 
     public function create(): View
     {
-        return view('reports.create');
+        return view('email.create');
     }
 
-    public function store(StoreReportRequest $request): RedirectResponse
+    public function store(StoreEmailRequest $request): RedirectResponse
     {
-        $report = DB::transaction(function () use ($request) {
-            $report = Report::query()->create([
+        $email = DB::transaction(function () use ($request) {
+            $email = Email::query()->create([
                 'user_id' => $request->user()->id,
                 'category_id' => $this->defaultCategoryId(),
                 'subject' => $request->string('subject')->toString(),
                 'body' => $request->string('body')->toString(),
-                'status' => ReportStatus::Pending,
+                'status' => EmailStatus::Pending,
             ]);
 
-            $this->syncParticipant($report, $request->input('to'), ParticipantType::To);
+            $this->syncParticipant($email, $request->input('to'), ParticipantType::To);
             foreach ($request->input('cc', []) as $cc) {
                 if (! empty($cc['email'])) {
-                    $this->syncParticipant($report, $cc, ParticipantType::Cc);
+                    $this->syncParticipant($email, $cc, ParticipantType::Cc);
                 }
             }
 
             if ($request->hasFile('attachments')) {
                 foreach ($request->file('attachments') as $file) {
-                    $path = $file->store('attachments/'.$report->id, 'local');
-                    $report->attachments()->create([
+                    $path = $file->store('attachments/'.$email->id, 'local');
+                    $email->attachments()->create([
                         'path' => $path,
                         'original_filename' => $file->getClientOriginalName(),
                         'mime_type' => $file->getMimeType(),
@@ -97,74 +97,74 @@ class ReportController extends Controller
                 }
             }
 
-            ReportEvent::query()->create([
-                'report_id' => $report->id,
+            EmailEvent::query()->create([
+                'email_id' => $email->id,
                 'type' => 'created',
                 'meta' => ['user_id' => $request->user()->id],
             ]);
 
-            return $report;
+            return $email;
         });
 
-        SendReportEmail::dispatch($report);
+        SendOutboundEmail::dispatch($email);
 
-        ReportEvent::query()->create([
-            'report_id' => $report->id,
+        EmailEvent::query()->create([
+            'email_id' => $email->id,
             'type' => 'queued',
         ]);
 
         return redirect()
-            ->route('reports.show', $report)
-            ->with('success', 'Report submitted. It will be emailed shortly.');
+            ->route('emails.show', $email)
+            ->with('success', 'Email submitted. It will be sent shortly.');
     }
 
-    public function show(Report $report): View
+    public function show(Email $email): View
     {
-        $this->authorize('view', $report);
+        $this->authorize('view', $email);
 
-        $report->load(['participants', 'threadMessages.attachments', 'attachments', 'user', 'events']);
+        $email->load(['participants', 'threadMessages.attachments', 'attachments', 'user', 'events']);
 
-        ReportEvent::query()->create([
-            'report_id' => $report->id,
+        EmailEvent::query()->create([
+            'email_id' => $email->id,
             'type' => 'viewed',
             'meta' => ['user_id' => auth()->id()],
         ]);
 
-        $directory = DirectoryDisplayResolver::forReport($report);
+        $directory = DirectoryDisplayResolver::forEmail($email);
 
-        return view('reports.show', compact('report', 'directory'));
+        return view('email.show', compact('email', 'directory'));
     }
 
-    private function syncParticipant(Report $report, array $participant, ParticipantType $type): void
+    private function syncParticipant(Email $email, array $participant, ParticipantType $type): void
     {
-        $email = $participant['email'];
+        $participantEmail = $participant['email'];
         $name = $participant['name'] ?? null;
 
         if (! filled($name)) {
             $name = DirectoryContact::query()
-                ->whereRaw('lower(email) = ?', [strtolower($email)])
+                ->whereRaw('lower(email) = ?', [strtolower($participantEmail)])
                 ->value('display_name')
-                ?? User::query()->whereRaw('lower(email) = ?', [strtolower($email)])->value('name');
+                ?? User::query()->whereRaw('lower(email) = ?', [strtolower($participantEmail)])->value('name');
         }
 
-        ReportParticipant::query()->create([
-            'report_id' => $report->id,
-            'email' => $email,
+        EmailParticipant::query()->create([
+            'email_id' => $email->id,
+            'email' => $participantEmail,
             'name' => $name,
             'type' => $type,
-            'user_id' => User::query()->where('email', $email)->value('id'),
+            'user_id' => User::query()->where('email', $participantEmail)->value('id'),
         ]);
     }
 
     private function defaultCategoryId(): int
     {
-        return ReportCategory::query()->firstOrCreate(
+        return EmailCategory::query()->firstOrCreate(
             ['name' => 'General'],
-            ['description' => 'Uncategorized reports']
+            ['description' => 'Uncategorized emails']
         )->id;
     }
 
-    private function applyReportVisibility($query, User $user): void
+    private function applyEmailVisibility($query, User $user): void
     {
         if ($user->isAdmin()) {
             return;

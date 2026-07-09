@@ -2,8 +2,8 @@
 
 namespace App\Services\Graph;
 
-use App\Models\Report;
-use App\Models\ReportMessage;
+use App\Models\Email;
+use App\Models\EmailMessage;
 use App\Models\User;
 use Illuminate\Support\Facades\Http;
 use RuntimeException;
@@ -23,7 +23,7 @@ class GraphReplySender
     /**
      * @return array{sent: bool, reason: ?string, graph_message_id: ?string}
      */
-    public function replyAll(Report $report, User $user, string $bodyText): array
+    public function replyAll(Email $email, User $user, string $bodyText): array
     {
         $mailbox = $user->shared_mailbox_email ?: $user->email;
 
@@ -31,8 +31,8 @@ class GraphReplySender
             return ['sent' => false, 'reason' => 'no_mailbox', 'graph_message_id' => null];
         }
 
-        $anchor = $this->findAnchorMessage($report, $mailbox)
-            ?? $this->findAnchorMessage($report, $this->settings->defaultSenderMailbox() ?? '');
+        $anchor = $this->findAnchorMessage($email, $mailbox)
+            ?? $this->findAnchorMessage($email, $this->settings->defaultSenderMailbox() ?? '');
 
         if (! $anchor) {
             return ['sent' => false, 'reason' => 'copy_not_synced', 'graph_message_id' => null];
@@ -53,10 +53,10 @@ class GraphReplySender
         return ['sent' => true, 'reason' => null, 'graph_message_id' => $anchor->graph_message_id];
     }
 
-    private function findAnchorMessage(Report $report, string $mailbox): ?ReportMessage
+    private function findAnchorMessage(Email $email, string $mailbox): ?EmailMessage
     {
-        $inMailbox = ReportMessage::query()
-            ->where('report_id', $report->id)
+        $inMailbox = EmailMessage::query()
+            ->where('email_id', $email->id)
             ->where('mailbox', $mailbox)
             ->whereNotNull('graph_message_id')
             ->latest()
@@ -66,8 +66,8 @@ class GraphReplySender
             return $inMailbox;
         }
 
-        return ReportMessage::query()
-            ->where('report_id', $report->id)
+        return EmailMessage::query()
+            ->where('email_id', $email->id)
             ->whereNotNull('graph_message_id')
             ->latest()
             ->first();

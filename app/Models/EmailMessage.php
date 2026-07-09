@@ -8,12 +8,12 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 
-class ReportMessage extends Model
+class EmailMessage extends Model
 {
     public $timestamps = false;
 
     protected $fillable = [
-        'report_id',
+        'email_id',
         'direction',
         'mailbox',
         'from_email',
@@ -43,14 +43,14 @@ class ReportMessage extends Model
 
     protected static function booted(): void
     {
-        static::creating(function (ReportMessage $message) {
+        static::creating(function (EmailMessage $message) {
             $message->created_at ??= now();
         });
     }
 
-    public function report(): BelongsTo
+    public function email(): BelongsTo
     {
-        return $this->belongsTo(Report::class);
+        return $this->belongsTo(Email::class);
     }
 
     public function displayBody(): string

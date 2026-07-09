@@ -16,7 +16,7 @@ class BrandingController extends Controller
 
         return response(Storage::disk('local')->get($path), 200, [
             'Content-Type' => Storage::disk('local')->mimeType($path),
-            'Cache-Control' => 'private, max-age=3600',
+            'Cache-Control' => 'public, max-age=3600',
         ]);
     }
 }

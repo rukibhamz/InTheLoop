@@ -9,11 +9,11 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('report_messages', function (Blueprint $table) {
+        Schema::table('email_messages', function (Blueprint $table) {
             $table->boolean('show_in_thread')->default(true)->after('email_pending');
         });
 
-        DB::table('report_messages')
+        DB::table('email_messages')
             ->where('direction', 'outbound')
             ->whereNotNull('body_html')
             ->update(['show_in_thread' => false]);
@@ -21,7 +21,7 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::table('report_messages', function (Blueprint $table) {
+        Schema::table('email_messages', function (Blueprint $table) {
             $table->dropColumn('show_in_thread');
         });
     }

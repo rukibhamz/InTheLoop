@@ -104,7 +104,7 @@
                         @empty
                             <tr>
                                 <td colspan="5" class="px-5 py-12 text-center text-on-surface-variant">
-                                    No recipients configured yet. Add shared mailboxes used for report routing.
+                                    No recipients configured yet. Add shared mailboxes used for email routing.
                                 </td>
                             </tr>
                         @endforelse
@@ -146,7 +146,7 @@
                     <span class="material-symbols-outlined text-gray-400 transition group-hover:text-primary-500">arrow_forward</span>
                 </div>
                 <h3 class="mt-4 font-semibold text-on-surface">Mapping Rules</h3>
-                <p class="mt-1 text-sm text-on-surface-variant">Configure automated routing rules to ensure reports reach the right department heads.</p>
+                <p class="mt-1 text-sm text-on-surface-variant">Configure automated routing rules to ensure emails reach the right department heads.</p>
             </a>
         </div>
     </div>

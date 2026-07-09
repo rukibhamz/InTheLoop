@@ -4,8 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Models\Announcement;
 use App\Models\Attachment;
-use App\Models\Report;
-use App\Models\ReportMessage;
+use App\Models\Email;
+use App\Models\EmailMessage;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -16,10 +16,10 @@ class AttachmentController extends Controller
     {
         $attachable = $attachment->attachable;
 
-        if ($attachable instanceof Report) {
+        if ($attachable instanceof Email) {
             $this->authorize('view', $attachable);
-        } elseif ($attachable instanceof ReportMessage) {
-            $this->authorize('view', $attachable->report);
+        } elseif ($attachable instanceof EmailMessage) {
+            $this->authorize('view', $attachable->email);
         } elseif ($attachable instanceof Announcement) {
             abort_unless($request->user() !== null, 403);
         } else {

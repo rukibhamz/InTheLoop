@@ -24,14 +24,14 @@ return new class extends Migration
             $table->string('shared_mailbox_email')->nullable()->after('department');
         });
 
-        Schema::table('reports', function (Blueprint $table) {
+        Schema::table('emails', function (Blueprint $table) {
             $table->string('approval_token_hash', 64)->nullable()->after('approved_at');
         });
     }
 
     public function down(): void
     {
-        Schema::table('reports', function (Blueprint $table) {
+        Schema::table('emails', function (Blueprint $table) {
             $table->dropColumn('approval_token_hash');
         });
 

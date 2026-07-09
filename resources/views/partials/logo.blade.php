@@ -12,7 +12,7 @@
         </div>
         <div class="min-w-0 text-left">
             <p class="truncate text-sm font-bold text-on-surface">{{ $orgName }}</p>
-            <p class="truncate text-xs text-on-surface-variant">Internal Reporting</p>
+            <p class="truncate text-xs text-on-surface-variant">Internal Email</p>
         </div>
     @endif
 </div>

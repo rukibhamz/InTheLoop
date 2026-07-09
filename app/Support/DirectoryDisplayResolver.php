@@ -4,8 +4,8 @@ namespace App\Support;
 
 use App\Models\Announcement;
 use App\Models\DirectoryContact;
-use App\Models\Report;
-use App\Models\ReportParticipant;
+use App\Models\Email;
+use App\Models\EmailParticipant;
 use App\Models\User;
 use Illuminate\Support\Collection;
 
@@ -14,16 +14,16 @@ class DirectoryDisplayResolver
     /** @var array<string, string> */
     private array $names = [];
 
-    public static function forReport(Report $report): self
+    public static function forEmail(Email $email): self
     {
         $resolver = new self;
 
         $emails = collect([
-            $report->user?->email,
-            $report->user?->shared_mailbox_email,
+            $email->user?->email,
+            $email->user?->shared_mailbox_email,
         ]);
 
-        foreach ($report->participants as $participant) {
+        foreach ($email->participants as $participant) {
             $emails->push($participant->email);
 
             if (filled($participant->name)) {
@@ -31,7 +31,7 @@ class DirectoryDisplayResolver
             }
         }
 
-        foreach ($report->threadMessages as $message) {
+        foreach ($email->threadMessages as $message) {
             $emails->push($message->from_email);
             $emails = $emails->merge($message->to_emails ?? [])->merge($message->cc_emails ?? []);
         }
@@ -138,7 +138,7 @@ class DirectoryDisplayResolver
             ->join('; ');
     }
 
-    public function formattedParticipant(ReportParticipant $participant): string
+    public function formattedParticipant(EmailParticipant $participant): string
     {
         if (filled($participant->name)) {
             return "{$participant->name} <{$participant->email}>";
@@ -148,12 +148,12 @@ class DirectoryDisplayResolver
     }
 
     /**
-     * @param  Collection<int, ReportParticipant>|iterable<int, ReportParticipant>  $participants
+     * @param  Collection<int, EmailParticipant>|iterable<int, EmailParticipant>  $participants
      */
     public function formattedParticipants(iterable $participants): string
     {
         return collect($participants)
-            ->map(fn (ReportParticipant $participant) => $this->formattedParticipant($participant))
+            ->map(fn (EmailParticipant $participant) => $this->formattedParticipant($participant))
             ->join('; ');
     }
 

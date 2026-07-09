@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Report Categories')
+@section('title', 'Categories')
 
 @section('content')
     @php
@@ -22,8 +22,8 @@
                     <span class="mx-1">›</span>
                     <span>Categories</span>
                 </nav>
-                <h1 class="page-title">Report Categories</h1>
-                <p class="mt-1 text-sm text-on-surface-variant">Manage organizational units and disclosure classifications.</p>
+                <h1 class="page-title">Categories</h1>
+                <p class="mt-1 text-sm text-on-surface-variant">Manage organizational units and email classifications.</p>
             </div>
             <a href="{{ route('categories.create') }}" class="btn-primary w-full gap-2 sm:w-auto">
                 <span class="material-symbols-outlined text-[18px]">add</span>
@@ -37,8 +37,8 @@
                 <p class="mt-1 text-3xl font-bold text-primary-600">{{ $stats['total_categories'] }}</p>
             </div>
             <div class="stat-card">
-                <p class="text-xs font-semibold tracking-wide text-on-surface-variant uppercase">Active Reports</p>
-                <p class="mt-1 text-3xl font-bold text-primary-600">{{ $stats['active_reports'] }}</p>
+                <p class="text-xs font-semibold tracking-wide text-on-surface-variant uppercase">Active Emails</p>
+                <p class="mt-1 text-3xl font-bold text-primary-600">{{ $stats['active_emails'] }}</p>
             </div>
             <div class="stat-card">
                 <p class="text-xs font-semibold tracking-wide text-on-surface-variant uppercase">Avg. Review Time</p>
@@ -53,7 +53,7 @@
         <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             @foreach ($categories as $category)
                 @php
-                    $isReview = $category->reports_count > 0 && $category->reports_count < 3;
+                    $isReview = $category->emails_count > 0 && $category->emails_count < 3;
                 @endphp
                 <article class="report-grid-card">
                     <div class="mb-4 flex items-start justify-between">
@@ -74,8 +74,8 @@
 
                     <div class="mt-4 flex items-center justify-between border-t border-gray-100 pt-4">
                         <span class="inline-flex items-center gap-1 text-sm text-on-surface-variant">
-                            <span class="material-symbols-outlined text-[16px]">description</span>
-                            {{ $category->reports_count }} {{ Str::plural('Report', $category->reports_count) }}
+                            <span class="material-symbols-outlined text-[16px]">mail</span>
+                            {{ $category->emails_count }} {{ Str::plural('Email', $category->emails_count) }}
                         </span>
                         <a href="{{ route('categories.edit', $category) }}" class="text-sm font-semibold text-primary-600 hover:underline">Manage →</a>
                     </div>
@@ -87,7 +87,7 @@
                     <span class="material-symbols-outlined text-[28px]">add</span>
                 </div>
                 <h3 class="font-semibold text-on-surface">Create Custom Category</h3>
-                <p class="mt-1 max-w-xs text-sm text-on-surface-variant">Define new reporting workflows for specialized departments.</p>
+                <p class="mt-1 max-w-xs text-sm text-on-surface-variant">Define new email workflows for specialized departments.</p>
             </a>
         </div>
     </div>

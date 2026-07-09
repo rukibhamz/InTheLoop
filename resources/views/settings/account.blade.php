@@ -80,7 +80,7 @@
                                 </thead>
                                 <tbody class="divide-y divide-gray-100">
                                     @foreach ([
-                                        'new_report_assigned' => ['group' => 'Report Alerts', 'label' => 'New Report Assigned'],
+                                        'new_report_assigned' => ['group' => 'Email Alerts', 'label' => 'New Email Assigned'],
                                         'comment_replies' => ['group' => null, 'label' => 'Comment Replies'],
                                         'approval_required' => ['group' => 'Approval Workflow', 'label' => 'Approval Required'],
                                         'status_changes' => ['group' => null, 'label' => 'Status Changes'],

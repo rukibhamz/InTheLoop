@@ -6,12 +6,12 @@ use App\Enums\ParticipantType;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class ReportParticipant extends Model
+class EmailParticipant extends Model
 {
     public $timestamps = false;
 
     protected $fillable = [
-        'report_id',
+        'email_id',
         'email',
         'name',
         'type',
@@ -28,14 +28,14 @@ class ReportParticipant extends Model
 
     protected static function booted(): void
     {
-        static::creating(function (ReportParticipant $participant) {
+        static::creating(function (EmailParticipant $participant) {
             $participant->created_at ??= now();
         });
     }
 
-    public function report(): BelongsTo
+    public function email(): BelongsTo
     {
-        return $this->belongsTo(Report::class);
+        return $this->belongsTo(Email::class);
     }
 
     public function user(): BelongsTo

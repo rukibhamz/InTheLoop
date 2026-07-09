@@ -15,7 +15,7 @@
             @endif
 
             <h1 class="text-3xl font-bold tracking-tight text-primary-500 sm:text-4xl">{{ $branding->orgName() }}</h1>
-            <p class="mt-1 text-sm text-on-surface-variant">Professional Internal Reporting &amp; Approvals</p>
+            <p class="mt-1 text-sm text-on-surface-variant">Professional Internal Email &amp; Approvals</p>
         </div>
 
         {{-- Login card --}}

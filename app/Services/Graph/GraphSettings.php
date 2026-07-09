@@ -133,27 +133,27 @@ class GraphSettings
     }
 
     /**
-     * Mailboxes tied to a specific report thread (submitter + in-app users on To/CC).
+     * Mailboxes tied to a specific email thread (submitter + in-app users on To/CC).
      *
      * @return list<string>
      */
-    public function mailboxesForReport(\App\Models\Report $report): array
+    public function mailboxesForEmail(\App\Models\Email $email): array
     {
-        $report->loadMissing(['user', 'participants']);
+        $email->loadMissing(['user', 'participants']);
 
         $mailboxes = $this->allMonitoredMailboxes();
 
-        $participantEmails = $report->participants->pluck('email')->filter()->all();
+        $participantEmails = $email->participants->pluck('email')->filter()->all();
         $participantUserMailboxes = \App\Models\User::query()
             ->whereIn('email', $participantEmails)
             ->whereNotNull('shared_mailbox_email')
             ->pluck('shared_mailbox_email')
             ->all();
 
-        if ($report->user?->shared_mailbox_email) {
-            $mailboxes[] = $report->user->shared_mailbox_email;
-        } elseif ($report->user?->email) {
-            $mailboxes[] = $report->user->email;
+        if ($email->user?->shared_mailbox_email) {
+            $mailboxes[] = $email->user->shared_mailbox_email;
+        } elseif ($email->user?->email) {
+            $mailboxes[] = $email->user->email;
         }
 
         return array_values(array_unique(array_filter(array_map(

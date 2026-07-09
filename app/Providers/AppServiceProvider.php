@@ -20,16 +20,16 @@ class AppServiceProvider extends ServiceProvider
             URL::forceRootUrl($rootUrl);
         }
 
-        View::composer(['layouts.*', 'auth.*', 'reports.*', 'settings.*', 'recipients.*', 'categories.*', 'users.*', 'routing.*', 'partials.*'], function ($view) {
+        View::composer(['layouts.*', 'auth.*', 'email.*', 'settings.*', 'recipients.*', 'categories.*', 'users.*', 'routing.*', 'partials.*'], function ($view) {
             $view->with('branding', app(Branding::class));
             $view->with('microsoftSettings', app(\App\Services\MicrosoftSettings::class));
 
             if (auth()->check() && str_starts_with($view->name(), 'layouts.')) {
                 $user = auth()->user();
-                $notifications = \App\Models\ReportEvent::query()
-                    ->with('report:id,subject')
+                $notifications = \App\Models\EmailEvent::query()
+                    ->with('email:id,subject')
                     ->whereIn('type', ['sent', 'approved', 'rejected', 'replied', 'created'])
-                    ->whereHas('report', function ($query) use ($user) {
+                    ->whereHas('email', function ($query) use ($user) {
                         $query->where('user_id', $user->id)
                             ->orWhereHas('participants', function ($participantQuery) use ($user) {
                                 $participantQuery->where('user_id', $user->id)

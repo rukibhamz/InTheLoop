@@ -2,13 +2,15 @@
 
 namespace App\Http\Requests;
 
+use App\Enums\EmailStatus;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
-class StoreReportReplyRequest extends FormRequest
+class UpdateEmailStatusRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user() !== null;
+        return $this->user()?->isAdmin() ?? false;
     }
 
     /**
@@ -17,7 +19,7 @@ class StoreReportReplyRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'body' => ['required', 'string', 'max:10000'],
+            'status' => ['required', Rule::enum(EmailStatus::class)],
         ];
     }
 }

@@ -5,10 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', $branding->orgName())</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <style>
         :root {
@@ -42,9 +38,9 @@
                 aria-label="Main navigation"
                 @click="if ($event.target.closest('a')) sidebarOpen = false"
             >
-                <a href="{{ route('reports.index') }}" class="nav-item {{ request()->routeIs('reports.*') ? 'nav-item-active' : '' }}">
-                    <span class="material-symbols-outlined text-[20px]">description</span>
-                    Reports
+                <a href="{{ route('emails.index') }}" class="nav-item {{ request()->routeIs('emails.*') ? 'nav-item-active' : '' }}">
+                    <span class="material-symbols-outlined text-[20px]">mail</span>
+                    Email
                 </a>
 
                 <a href="{{ route('announcements.index') }}" class="nav-item {{ request()->routeIs('announcements.*') ? 'nav-item-active' : '' }}">
@@ -126,9 +122,9 @@
                         >
                             <p class="px-4 py-2 text-xs font-semibold tracking-wide text-gray-500 uppercase">Recent activity</p>
                             @forelse ($notifications ?? [] as $notification)
-                                <a href="{{ $notification->report_id ? route('reports.show', $notification->report_id) : '#' }}" class="block px-4 py-2 text-sm hover:bg-gray-50" @click="notificationsOpen = false">
+                                <a href="{{ $notification->email_id ? route('emails.show', $notification->email_id) : '#' }}" class="block px-4 py-2 text-sm hover:bg-gray-50" @click="notificationsOpen = false">
                                     <p class="font-medium text-gray-800">{{ ucfirst(str_replace('_', ' ', $notification->type)) }}</p>
-                                    <p class="truncate text-xs text-gray-500">{{ $notification->report?->subject }}</p>
+                                    <p class="truncate text-xs text-gray-500">{{ $notification->email?->subject }}</p>
                                     <p class="text-xs text-gray-400">{{ $notification->created_at->diffForHumans() }}</p>
                                 </a>
                             @empty
@@ -136,12 +132,12 @@
                             @endforelse
                         </div>
                     </div>
-                    <a href="{{ route('reports.create') }}" class="btn-primary inline-flex p-2.5 sm:hidden" aria-label="New Report">
+                    <a href="{{ route('emails.create') }}" class="btn-primary inline-flex p-2.5 sm:hidden" aria-label="New Email">
                         <span class="material-symbols-outlined text-[20px]">add</span>
                     </a>
-                    <a href="{{ route('reports.create') }}" class="btn-primary hidden gap-2 sm:inline-flex">
+                    <a href="{{ route('emails.create') }}" class="btn-primary hidden gap-2 sm:inline-flex">
                         <span class="material-symbols-outlined text-[18px]">add</span>
-                        <span class="hidden md:inline">New Report</span>
+                        <span class="hidden md:inline">New Email</span>
                         <span class="md:hidden">New</span>
                     </a>
                     <a href="{{ route('users.show', auth()->user()) }}" class="user-avatar shrink-0" title="{{ auth()->user()->name }}">

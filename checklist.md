@@ -43,16 +43,16 @@ Living progress tracker for the InTheLoop system. Aligned with [SKILL.md](SKILL.
 | `users` migration | ✅ | Includes `azure_object_id`, `auth_method`, roles |
 | `recipients` migration | ✅ | Shared mailbox routing targets |
 | `directory_contacts` migration | ✅ | |
-| `report_categories` migration | ✅ | |
-| `reports` migration | ✅ | |
-| `report_participants` migration | ✅ | To + CC |
-| `report_messages` migration | ✅ | Outbound + inbound threading |
+| `email_categories` migration | ✅ | |
+| `emails` migration | ✅ | |
+| `email_participants` migration | ✅ | To + CC |
+| `email_messages` migration | ✅ | Outbound + inbound threading |
 | `attachments` migration | ✅ | Polymorphic |
-| `report_events` migration | ✅ | Audit trail |
+| `email_events` migration | ✅ | Audit trail |
 | `app_settings` migration | ✅ | Branding row |
 | Integration settings columns | ✅ | Graph + SSO fields on `app_settings` |
 | Eloquent models + relationships | ✅ | |
-| Enums (`ReportStatus`, etc.) | ✅ | |
+| Enums (`EmailStatus`, etc.) | ✅ | |
 | Development seeder (categories + contacts) | ✅ | `DevelopmentSeeder` |
 | `shared_mailbox_email` on users | ✅ | For Graph reply flow |
 
@@ -71,9 +71,9 @@ Living progress tracker for the InTheLoop system. Aligned with [SKILL.md](SKILL.
 | Branding service (logo, accent, org name) | ✅ | `App\Services\Branding` |
 | CSS component library | ✅ | Buttons, forms, badges, message bubbles |
 | Alpine.js + directory picker | ✅ | Typeahead component |
-| **Design:** Reports list | ✅ | Dashboard with stats cards + grid |
-| **Design:** New report form | ✅ | Card form + upload zone + info banner |
-| **Design:** Report thread view | ✅ | Conversation bubbles + reply composer shell |
+| **Design:** Emails list | ✅ | Dashboard with stats cards + grid |
+| **Design:** New email form | ✅ | Card form + upload zone + info banner |
+| **Design:** Email thread view | ✅ | Conversation bubbles + reply composer shell |
 | **Design:** Admin / settings | ✅ | Account + App settings |
 | **Design:** Recipients | ✅ | Manage recipients table |
 | **Design:** Categories | ✅ | Category cards grid |
@@ -95,15 +95,15 @@ Living progress tracker for the InTheLoop system. Aligned with [SKILL.md](SKILL.
 
 ---
 
-## Phase 5 — Report submission
+## Phase 5 — Email submission
 
 | Item | Status | Notes |
 |------|--------|-------|
-| Reports list (`/reports`) | ✅ | Dashboard with stats + card grid |
-| New report form (`/reports/create`) | ✅ | Card layout per mockup |
-| `StoreReportRequest` validation | ✅ | Includes rate limit on store |
+| Emails list (`/emails`) | ✅ | Dashboard with stats + card grid |
+| New email form (`/emails/create`) | ✅ | Card layout per mockup |
+| `StoreEmailRequest` validation | ✅ | Includes rate limit on store |
 | DB persist before email | ✅ | Status `pending` |
-| `SendReportEmail` queued job | ✅ | |
+| `SendOutboundEmail` queued job | ✅ | |
 | File upload validation | ✅ | 25MB max; PDF/images/Office MIME types |
 | **Design:** Submission form | 🎨 | Awaiting mockup |
 
@@ -118,7 +118,7 @@ Living progress tracker for the InTheLoop system. Aligned with [SKILL.md](SKILL.
 | Shared mailboxes for senders | ⬜ | Exchange admin task |
 | `GraphTokenService` (client credentials) | ✅ | Token cached ~58 min |
 | `GraphMailer` service | ✅ | Falls back to mock when unconfigured |
-| Outbound email Blade template | ✅ | `emails/report-submitted.blade.php` |
+| Outbound email Blade template | ✅ | `emails/email-submitted.blade.php` |
 | Capture `conversation_id` on send | ✅ | Fetches from Sent Items when Graph live |
 | Queue worker documented | ✅ | `php artisan queue:work --queue=mail,default,sync --queue=mail,default,sync` |
 | Real test email (To + CC) | ⬜ | Blocked on Entra credentials |
@@ -129,12 +129,12 @@ Living progress tracker for the InTheLoop system. Aligned with [SKILL.md](SKILL.
 
 | Item | Status | Notes |
 |------|--------|-------|
-| Approval token generation on send | ✅ | Hashed token on `reports.approval_token_hash` |
+| Approval token generation on send | ✅ | Hashed token on `emails.approval_token_hash` |
 | Signed approval URL in outbound email | ✅ | Link in email template |
-| In-app Approve / Reject buttons | ✅ | On report thread page |
-| Auth + approver role check on approval | ✅ | `ReportPolicy::approve` |
-| `report_events` on approve/reject | ✅ | |
-| Post-approval notifications | ✅ | `SendReportStatusNotification` job emails participants |
+| In-app Approve / Reject buttons | ✅ | On email thread page |
+| Auth + approver role check on approval | ✅ | `EmailPolicy::approve` |
+| `email_events` on approve/reject | ✅ | |
+| Post-approval notifications | ✅ | `SendEmailStatusNotification` job emails participants |
 | **Design:** Approval confirmation | 🎨 | Optional mockup |
 
 ---
@@ -160,9 +160,9 @@ Living progress tracker for the InTheLoop system. Aligned with [SKILL.md](SKILL.
 |------|--------|-------|
 | Install Filament v3 | ⬜ | Optional; native admin UIs built |
 | CRUD: recipients | ✅ | List, create, edit, delete, CSV import/export, routing |
-| CRUD: report categories | ✅ | Grid, create, edit, delete |
-| Report list + filters + detail | ✅ | Main app reports dashboard + thread |
-| Manual status override | ✅ | Admin dropdown on report thread |
+| CRUD: email categories | ✅ | Grid, create, edit, delete |
+| Email list + filters + detail | ✅ | Main app emails dashboard + thread |
+| Manual status override | ✅ | Admin dropdown on email thread |
 | Graph + SSO settings page | ✅ | `/settings/app` — branding + Graph/SSO fields |
 | Branding settings (logo, accent) | ✅ | `/settings/app` |
 | User management (roles) | ✅ | `/users` — CRUD, roles, active flag, public profile |
@@ -177,7 +177,7 @@ Living progress tracker for the InTheLoop system. Aligned with [SKILL.md](SKILL.
 | Rate limiting on submissions | ✅ | `throttle:10,1` |
 | Attachment download (authenticated) | ✅ | `/attachments/{id}/download` |
 | Status change notifications | ✅ | On approve, reject, and manual status override |
-| Error monitoring / failed send retry | ✅ | `SendReportEmail` 3 tries; `SendGraphReply` 5 tries with backoff |
+| Error monitoring / failed send retry | ✅ | `SendOutboundEmail` 3 tries; `SendGraphReply` 5 tries with backoff |
 | Security review (approval tokens, uploads) | ⬜ | See SKILL security section |
 | NDPR / retention policy | ⬜ | Organizational sign-off |
 
@@ -188,10 +188,10 @@ Living progress tracker for the InTheLoop system. Aligned with [SKILL.md](SKILL.
 | Screen | Status | File / notes |
 |--------|--------|--------------|
 | Login | ✅ Received | Centered card, Microsoft SSO, email/password |
-| Reports dashboard | ✅ Received | Stats cards + recent submissions grid |
-| New report | ✅ Received | Card form, CC chips, upload zone |
-| Report thread | ✅ Received | Message bubbles, approve, reply composer |
-| Report Categories | ✅ Received | Stats + category cards grid |
+| Emails dashboard | ✅ Received | Stats cards + recent submissions grid |
+| New email | ✅ Received | Card form, CC chips, upload zone |
+| Email thread | ✅ Received | Message bubbles, approve, reply composer |
+| Email Categories | ✅ Received | Stats + category cards grid |
 | Recipients | ✅ Received | Table + stats + bulk import cards |
 | Account Settings | ✅ Received | Profile, security, notifications |
 | App Settings | ✅ Received | Branding, logo, accent color |
@@ -244,5 +244,5 @@ php artisan schedule:work   # local scheduler
 
 1. **Configure Entra** — register app, grant permissions, set Application Access Policy on shared mailboxes.
 2. **Enter credentials** in App Settings; enable SSO; run `php artisan graph:test`.
-3. **Live test** — submit a report, verify outbound email + `conversation_id`, reply from Outlook, confirm inbound sync.
+3. **Live test** — submit an email, verify outbound email + `conversation_id`, reply from Outlook, confirm inbound sync.
 4. **Production** — queue worker, scheduler cron, HTTPS for production `APP_URL`.

@@ -10,7 +10,7 @@
         </a>
 
         <h1 class="page-title">Mapping Rules</h1>
-        <p class="mt-1 mb-8 text-sm text-on-surface-variant">Assign a default recipient for each report category so new reports route automatically.</p>
+        <p class="mt-1 mb-8 text-sm text-on-surface-variant">Assign a default recipient for each category so new emails route automatically.</p>
 
         <form method="POST" action="{{ route('routing.update') }}" class="form-card space-y-4">
             @csrf

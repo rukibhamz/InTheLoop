@@ -7,7 +7,7 @@
         <div class="page-header">
             <div class="min-w-0">
                 <h1 class="page-title">Announcements</h1>
-                <p class="mt-1 text-sm text-on-surface-variant">Group and distribution-list mail captured separately from reports.</p>
+                <p class="mt-1 text-sm text-on-surface-variant">Group and distribution-list mail captured separately from email threads.</p>
             </div>
         </div>
 
@@ -34,7 +34,7 @@
                 <span class="material-symbols-outlined mb-4 text-[64px] text-gray-300">campaign</span>
                 <h3 class="text-xl font-semibold text-gray-700">No announcements yet</h3>
                 <p class="mt-2 max-w-md text-sm text-gray-500">
-                    Configure announcement mailboxes under Settings → Microsoft. Inbound group mail that is not part of a report thread will appear here.
+                    Configure announcement mailboxes under Settings → Microsoft. Inbound group mail that is not part of an email thread will appear here.
                 </p>
             </div>
         @else

@@ -1,22 +1,22 @@
 <?php
 
-use App\Models\ReportMessage;
+use App\Models\EmailMessage;
 use Illuminate\Database\Migrations\Migration;
 
 return new class extends Migration
 {
     public function up(): void
     {
-        ReportMessage::query()
-            ->with(['report.user'])
+        EmailMessage::query()
+            ->with(['email.user'])
             ->where('direction', 'inbound')
             ->where('show_in_thread', true)
             ->get()
-            ->each(function (ReportMessage $message) {
-                $report = $message->report;
-                $user = $report?->user;
+            ->each(function (EmailMessage $message) {
+                $email = $message->email;
+                $user = $email?->user;
 
-                if (! $report || ! $user || $message->subject !== $report->subject) {
+                if (! $email || ! $user || $message->subject !== $email->subject) {
                     return;
                 }
 

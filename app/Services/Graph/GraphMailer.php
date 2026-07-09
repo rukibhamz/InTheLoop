@@ -3,14 +3,21 @@
 namespace App\Services\Graph;
 
 use App\Enums\MessageDirection;
-use App\Models\Report;
-use App\Models\ReportMessage;
+use App\Models\Attachment;
+use App\Models\Email;
+use App\Models\EmailMessage;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use RuntimeException;
 
 class GraphMailer
 {
+    /**
+     * Graph sendMail JSON fileAttachment limit (contentBytes) is ~3 MB per file.
+     */
+    private const MAX_INLINE_ATTACHMENT_BYTES = 3 * 1024 * 1024;
+
     public function __construct(
         private readonly GraphSettings $settings,
         private readonly GraphTokenService $tokens
@@ -21,10 +28,10 @@ class GraphMailer
         return $this->settings->isConfigured() && filled($this->settings->defaultSenderMailbox());
     }
 
-    public function resolveSenderMailbox(Report $report): ?string
+    public function resolveSenderMailbox(Email $email): ?string
     {
-        return $report->user?->shared_mailbox_email
-            ?: $report->user?->email
+        return $email->user?->shared_mailbox_email
+            ?: $email->user?->email
             ?: $this->settings->defaultSenderMailbox();
     }
 
@@ -32,9 +39,9 @@ class GraphMailer
      * Mailbox used for Graph API send operations.
      * Prefers the submitter's shared mailbox; falls back to the default sender.
      */
-    public function resolveApiMailbox(?Report $report = null): string
+    public function resolveApiMailbox(?Email $email = null): string
     {
-        $preferred = $report ? $this->resolveSenderMailbox($report) : null;
+        $preferred = $email ? $this->resolveSenderMailbox($email) : null;
 
         if ($preferred) {
             return $preferred;
@@ -52,53 +59,60 @@ class GraphMailer
     /**
      * @return array{mailbox: string, graph_message_id: ?string, conversation_id: ?string, internet_message_id: ?string}
      */
-    public function sendReport(Report $report, string $htmlBody): array
+    public function sendEmail(Email $email, string $htmlBody): array
     {
-        $apiMailbox = $this->resolveApiMailbox($report);
+        $apiMailbox = $this->resolveApiMailbox($email);
 
-        $to = $report->participants()
+        $to = $email->participants()
             ->where('type', 'to')
             ->get()
             ->map(fn ($participant) => ['email' => $participant->email, 'name' => $participant->name])
             ->all();
 
-        $cc = $report->participants()
+        $cc = $email->participants()
             ->where('type', 'cc')
             ->get()
             ->map(fn ($participant) => ['email' => $participant->email, 'name' => $participant->name])
             ->all();
 
         if ($to === []) {
-            throw new RuntimeException('Report has no To recipients.');
+            throw new RuntimeException('Email has no To recipients.');
         }
 
         // CC the sending mailbox so a copy lands in Inbox for reply sync when Exchange
         // does not save app-sent mail to the shared mailbox Sent Items folder.
-        $cc = $this->withMailboxCopy($apiMailbox, $report->user?->name, $to, $cc);
+        $cc = $this->withMailboxCopy($apiMailbox, $email->user?->name, $to, $cc);
 
         $token = $this->tokens->getAppToken();
         $userPath = GraphUserPath::for($apiMailbox);
 
         $payload = [
-            'subject' => $report->subject,
+            'subject' => $email->subject,
             'body' => ['contentType' => 'HTML', 'content' => $htmlBody],
             'toRecipients' => $this->mapAddresses($to),
             'ccRecipients' => $this->mapAddresses($cc),
             'from' => [
                 'emailAddress' => [
                     'address' => $apiMailbox,
-                    'name' => $report->user?->name,
+                    'name' => $email->user?->name,
                 ],
             ],
         ];
 
+        $graphAttachments = $this->buildGraphFileAttachments($email);
+
+        if ($graphAttachments !== []) {
+            $payload['attachments'] = $graphAttachments;
+        }
+
         $this->sendMailMessage($token, $userPath, $payload, saveToSentItems: true);
 
-        $sentMeta = $this->fetchLatestSentMessage($apiMailbox, $report->subject);
+        $sentMeta = $this->fetchLatestSentMessage($apiMailbox, $email->subject);
 
-        Log::info('GraphMailer: report email sent', [
-            'report_id' => $report->id,
+        Log::info('GraphMailer: email sent', [
+            'email_id' => $email->id,
             'mailbox' => $apiMailbox,
+            'attachments' => count($graphAttachments),
             'graph_message_id' => $sentMeta['graph_message_id'] ?? null,
             'conversation_id' => $sentMeta['conversation_id'] ?? null,
         ]);
@@ -237,24 +251,94 @@ class GraphMailer
         }, $addresses);
     }
 
+    /**
+     * Build Graph fileAttachment payloads from locally stored email attachments.
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function buildGraphFileAttachments(Email $email): array
+    {
+        $email->loadMissing('attachments');
+
+        $attachments = [];
+
+        foreach ($email->attachments as $attachment) {
+            $graphAttachment = $this->toGraphFileAttachment($attachment, $email->id);
+
+            if ($graphAttachment !== null) {
+                $attachments[] = $graphAttachment;
+            }
+        }
+
+        return $attachments;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function toGraphFileAttachment(Attachment $attachment, int $emailId): ?array
+    {
+        if (! Storage::disk('local')->exists($attachment->path)) {
+            Log::warning('GraphMailer: attachment file missing on disk', [
+                'email_id' => $emailId,
+                'attachment_id' => $attachment->id,
+                'path' => $attachment->path,
+            ]);
+
+            return null;
+        }
+
+        $binary = Storage::disk('local')->get($attachment->path);
+        $size = strlen($binary);
+
+        if ($size > self::MAX_INLINE_ATTACHMENT_BYTES) {
+            Log::warning('GraphMailer: skipping attachment over Graph sendMail size limit', [
+                'email_id' => $emailId,
+                'attachment_id' => $attachment->id,
+                'filename' => $attachment->original_filename,
+                'size' => $size,
+                'limit' => self::MAX_INLINE_ATTACHMENT_BYTES,
+            ]);
+
+            return null;
+        }
+
+        if ($size === 0) {
+            Log::warning('GraphMailer: skipping empty attachment', [
+                'email_id' => $emailId,
+                'attachment_id' => $attachment->id,
+                'filename' => $attachment->original_filename,
+            ]);
+
+            return null;
+        }
+
+        return [
+            '@odata.type' => '#microsoft.graph.fileAttachment',
+            'name' => $attachment->original_filename,
+            'contentType' => $attachment->mime_type ?: 'application/octet-stream',
+            'contentBytes' => base64_encode($binary),
+        ];
+    }
+
     public function recordOutboundMessage(
-        Report $report,
+        Email $email,
         string $mailbox,
         array $sendMeta,
         ?string $htmlBody = null,
         bool $showInThread = true
-    ): ReportMessage {
-        $to = $report->participants()->where('type', 'to')->pluck('email')->all();
-        $cc = $report->participants()->where('type', 'cc')->pluck('email')->all();
+    ): EmailMessage {
+        $to = $email->participants()->where('type', 'to')->pluck('email')->all();
+        $cc = $email->participants()->where('type', 'cc')->pluck('email')->all();
 
-        return ReportMessage::query()->create([
-            'report_id' => $report->id,
+        return EmailMessage::query()->create([
+            'email_id' => $email->id,
             'direction' => MessageDirection::Outbound,
             'mailbox' => $mailbox,
             'from_email' => $sendMeta['from_email'] ?? $mailbox,
             'to_emails' => $to,
             'cc_emails' => $cc,
-            'subject' => $report->subject,
+            'subject' => $email->subject,
             'body_html' => $showInThread ? $htmlBody : null,
             'body_text' => $showInThread && $htmlBody ? strip_tags($htmlBody) : null,
             'graph_message_id' => $sendMeta['graph_message_id'] ?? null,

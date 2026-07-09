@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Support\PostLoginRedirect;
 use App\Services\Auth\AppLoginGate;
 use App\Services\Graph\GraphUserProfileResolver;
 use App\Services\MicrosoftSettings;
@@ -99,6 +100,6 @@ class MicrosoftAuthController extends Controller
         Auth::login($user, true);
         $request->session()->regenerate();
 
-        return redirect()->intended(route('dashboard'));
+        return PostLoginRedirect::to();
     }
 }

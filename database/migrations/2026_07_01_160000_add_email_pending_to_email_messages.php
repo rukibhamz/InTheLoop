@@ -8,14 +8,14 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('report_messages', function (Blueprint $table) {
+        Schema::table('email_messages', function (Blueprint $table) {
             $table->boolean('email_pending')->default(false)->after('conversation_id');
         });
     }
 
     public function down(): void
     {
-        Schema::table('report_messages', function (Blueprint $table) {
+        Schema::table('email_messages', function (Blueprint $table) {
             $table->dropColumn('email_pending');
         });
     }

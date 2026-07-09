@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\ReportCategory;
+use App\Models\EmailCategory;
 use App\Models\Recipient;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -12,7 +12,7 @@ class RoutingController extends Controller
 {
     public function index(): View
     {
-        $categories = ReportCategory::query()
+        $categories = EmailCategory::query()
             ->with('defaultRecipient')
             ->orderBy('name')
             ->get();
@@ -30,7 +30,7 @@ class RoutingController extends Controller
         ]);
 
         foreach ($validated['routes'] as $categoryId => $recipientId) {
-            ReportCategory::query()
+            EmailCategory::query()
                 ->whereKey($categoryId)
                 ->update(['default_recipient_id' => $recipientId ?: null]);
         }

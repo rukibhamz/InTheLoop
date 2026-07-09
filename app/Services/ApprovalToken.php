@@ -2,35 +2,35 @@
 
 namespace App\Services;
 
-use App\Models\Report;
+use App\Models\Email;
 use Illuminate\Support\Str;
 
 class ApprovalToken
 {
-    public function generate(Report $report): string
+    public function generate(Email $email): string
     {
         $plain = Str::random(64);
 
-        $report->forceFill([
+        $email->forceFill([
             'approval_token_hash' => hash('sha256', $plain),
         ])->save();
 
         return $plain;
     }
 
-    public function matches(Report $report, string $plain): bool
+    public function matches(Email $email, string $plain): bool
     {
-        if (! filled($report->approval_token_hash)) {
+        if (! filled($email->approval_token_hash)) {
             return false;
         }
 
-        return hash_equals($report->approval_token_hash, hash('sha256', $plain));
+        return hash_equals($email->approval_token_hash, hash('sha256', $plain));
     }
 
-    public function url(Report $report, string $plain): string
+    public function url(Email $email, string $plain): string
     {
-        return route('reports.approve.link', [
-            'report' => $report,
+        return route('emails.approve.link', [
+            'email' => $email,
             'token' => $plain,
         ]);
     }

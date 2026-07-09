@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Support\PostLoginRedirect;
 use App\Services\Auth\AppLoginGate;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -53,7 +54,7 @@ class AuthenticatedSessionController extends Controller
             return redirect()->to($request->string('redirect')->toString());
         }
 
-        return redirect()->intended(route('dashboard'));
+        return PostLoginRedirect::to();
     }
 
     public function destroy(Request $request): RedirectResponse

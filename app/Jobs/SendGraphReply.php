@@ -2,8 +2,8 @@
 
 namespace App\Jobs;
 
-use App\Models\Report;
-use App\Models\ReportMessage;
+use App\Models\Email;
+use App\Models\EmailMessage;
 use App\Models\User;
 use App\Services\Graph\GraphReplySender;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -25,7 +25,7 @@ class SendGraphReply implements ShouldQueue
     }
 
     public function __construct(
-        public ReportMessage $message,
+        public EmailMessage $message,
         public User $user
     ) {
         $this->onQueue('mail');
@@ -37,10 +37,10 @@ class SendGraphReply implements ShouldQueue
             return;
         }
 
-        $report = $this->message->report;
+        $email = $this->message->email;
 
         $result = $sender->replyAll(
-            $report,
+            $email,
             $this->user,
             $this->message->body_text ?? strip_tags($this->message->body_html ?? '')
         );
@@ -59,7 +59,7 @@ class SendGraphReply implements ShouldQueue
 
         if ($result['reason'] === 'copy_not_synced' && $this->attempts() < $this->tries) {
             Log::info('Graph reply waiting for mailbox copy sync', [
-                'report_id' => $report->id,
+                'email_id' => $email->id,
                 'message_id' => $this->message->id,
                 'attempt' => $this->attempts(),
             ]);

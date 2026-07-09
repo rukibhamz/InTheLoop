@@ -15,10 +15,10 @@ use App\Http\Controllers\DirectoryContactController;
 use App\Http\Controllers\InstallController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\RecipientController;
-use App\Http\Controllers\ReportApprovalController;
-use App\Http\Controllers\ReportController;
-use App\Http\Controllers\ReportReplyController;
-use App\Http\Controllers\ReportStatusController;
+use App\Http\Controllers\EmailApprovalController;
+use App\Http\Controllers\EmailController;
+use App\Http\Controllers\EmailReplyController;
+use App\Http\Controllers\EmailStatusController;
 use App\Http\Controllers\RoutingController;
 use App\Http\Controllers\MicrosoftSettingsController;
 use App\Http\Controllers\UserController;
@@ -35,6 +35,8 @@ Route::middleware('install')->prefix('install')->name('install.')->group(functio
     Route::get('/complete', [InstallController::class, 'complete'])->name('complete');
 });
 
+Route::get('/branding/logo', [BrandingController::class, 'logo'])->name('branding.logo');
+
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthenticatedSessionController::class, 'create'])->name('login');
     Route::post('/login', [AuthenticatedSessionController::class, 'store']);
@@ -49,27 +51,32 @@ Route::middleware('guest')->group(function () {
 });
 
 Route::middleware('auth')->group(function () {
-    Route::get('/dashboard', fn () => redirect()->route('reports.index'))->name('dashboard');
+    Route::get('/dashboard', fn () => redirect()->route('emails.index'))->name('dashboard');
     Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])->name('logout');
 
-    Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
-    Route::get('/reports/create', [ReportController::class, 'create'])->name('reports.create');
-    Route::post('/reports', [ReportController::class, 'store'])->middleware('throttle:10,1')->name('reports.store');
-    Route::get('/reports/{report}', [ReportController::class, 'show'])->name('reports.show');
-    Route::post('/reports/{report}/reply', [ReportReplyController::class, 'store'])->name('reports.reply');
+    Route::get('/emails', [EmailController::class, 'index'])->name('emails.index');
+    Route::get('/emails/create', [EmailController::class, 'create'])->name('emails.create');
+    Route::post('/emails', [EmailController::class, 'store'])->middleware('throttle:10,1')->name('emails.store');
+    Route::get('/emails/{email}', [EmailController::class, 'show'])->name('emails.show');
+    Route::post('/emails/{email}/reply', [EmailReplyController::class, 'store'])->name('emails.reply');
 
     Route::get('/announcements', [AnnouncementController::class, 'index'])->name('announcements.index');
     Route::get('/announcements/{announcement}', [AnnouncementController::class, 'show'])->name('announcements.show');
 
-    Route::get('/reports/{report}/approve/{token}', [ReportApprovalController::class, 'showLink'])->name('reports.approve.link');
-    Route::post('/reports/{report}/approve', [ReportApprovalController::class, 'approve'])->name('reports.approve');
-    Route::post('/reports/{report}/reject', [ReportApprovalController::class, 'reject'])->name('reports.reject');
-    Route::put('/reports/{report}/status', [ReportStatusController::class, 'update'])->name('reports.status.update');
+    Route::get('/emails/{email}/approve/{token}', [EmailApprovalController::class, 'showLink'])->name('emails.approve.link');
+    Route::post('/emails/{email}/approve', [EmailApprovalController::class, 'approve'])->name('emails.approve');
+    Route::post('/emails/{email}/reject', [EmailApprovalController::class, 'reject'])->name('emails.reject');
+    Route::put('/emails/{email}/status', [EmailStatusController::class, 'update'])->name('emails.status.update');
+
+    // Temporary redirects from old /reports URLs
+    Route::redirect('/reports', '/emails', 301);
+    Route::redirect('/reports/create', '/emails/create', 301);
+    Route::get('/reports/{email}', fn (string $email) => redirect()->route('emails.show', $email)->setStatusCode(301));
+    Route::get('/reports/{email}/approve/{token}', fn (string $email, string $token) => redirect()->route('emails.approve.link', ['email' => $email, 'token' => $token])->setStatusCode(301));
 
     Route::get('/attachments/{attachment}/download', [AttachmentController::class, 'download'])->name('attachments.download');
     Route::get('/api/directory/search', [DirectoryContactController::class, 'search'])->name('directory.search');
     Route::get('/api/notifications', [NotificationController::class, 'index'])->name('notifications.index');
-    Route::get('/branding/logo', [BrandingController::class, 'logo'])->name('branding.logo');
 
     Route::get('/settings/account', [AccountSettingsController::class, 'edit'])->name('settings.account');
     Route::put('/settings/account', [AccountSettingsController::class, 'update'])->name('settings.account.update');
@@ -114,7 +121,7 @@ Route::middleware('auth')->group(function () {
 
 Route::get('/', function () {
     if (auth()->check()) {
-        return redirect()->route('reports.index');
+        return redirect()->route('emails.index');
     }
 
     return redirect()->route('login');

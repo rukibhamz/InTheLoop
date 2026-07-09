@@ -2,13 +2,13 @@
 
 namespace App\Models;
 
-use App\Enums\ReportStatus;
+use App\Enums\EmailStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 
-class Report extends Model
+class Email extends Model
 {
     protected $fillable = [
         'user_id',
@@ -26,7 +26,7 @@ class Report extends Model
     protected function casts(): array
     {
         return [
-            'status' => ReportStatus::class,
+            'status' => EmailStatus::class,
             'sent_at' => 'datetime',
             'approved_at' => 'datetime',
         ];
@@ -39,7 +39,7 @@ class Report extends Model
 
     public function category(): BelongsTo
     {
-        return $this->belongsTo(ReportCategory::class, 'category_id');
+        return $this->belongsTo(EmailCategory::class, 'category_id');
     }
 
     public function approver(): BelongsTo
@@ -49,24 +49,24 @@ class Report extends Model
 
     public function participants(): HasMany
     {
-        return $this->hasMany(ReportParticipant::class);
+        return $this->hasMany(EmailParticipant::class);
     }
 
     public function messages(): HasMany
     {
-        return $this->hasMany(ReportMessage::class)->orderBy('created_at');
+        return $this->hasMany(EmailMessage::class)->orderBy('created_at');
     }
 
     public function threadMessages(): HasMany
     {
-        return $this->hasMany(ReportMessage::class)
+        return $this->hasMany(EmailMessage::class)
             ->where('show_in_thread', true)
             ->orderBy('created_at');
     }
 
     public function events(): HasMany
     {
-        return $this->hasMany(ReportEvent::class)->orderBy('created_at');
+        return $this->hasMany(EmailEvent::class)->orderBy('created_at');
     }
 
     public function attachments(): MorphMany

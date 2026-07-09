@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class ReportCategory extends Model
+class EmailCategory extends Model
 {
     protected $fillable = ['name', 'description', 'default_recipient_id'];
 
@@ -15,8 +15,8 @@ class ReportCategory extends Model
         return $this->belongsTo(Recipient::class, 'default_recipient_id');
     }
 
-    public function reports(): HasMany
+    public function emails(): HasMany
     {
-        return $this->hasMany(Report::class, 'category_id');
+        return $this->hasMany(Email::class, 'category_id');
     }
 }

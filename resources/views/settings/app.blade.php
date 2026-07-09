@@ -117,7 +117,7 @@
                     <div class="h-32 bg-gradient-to-br from-primary-500 to-primary-700"></div>
                     <div class="p-4">
                         <h3 class="font-semibold text-on-surface">InTheLoop Atmosphere</h3>
-                        <p class="mt-1 text-sm text-on-surface-variant">Brand configuration shapes how staff experience the platform across reports, email, and approvals.</p>
+                        <p class="mt-1 text-sm text-on-surface-variant">Brand configuration shapes how staff experience the platform across email and approvals.</p>
                     </div>
                 </section>
             </div>

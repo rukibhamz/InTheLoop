@@ -2,27 +2,27 @@
 
 namespace App\Policies;
 
-use App\Models\Report;
+use App\Models\Email;
 use App\Models\User;
 
-class ReportPolicy
+class EmailPolicy
 {
     public function viewAny(User $user): bool
     {
         return true;
     }
 
-    public function view(User $user, Report $report): bool
+    public function view(User $user, Email $email): bool
     {
         if ($user->isAdmin()) {
             return true;
         }
 
-        if ($report->user_id === $user->id) {
+        if ($email->user_id === $user->id) {
             return true;
         }
 
-        return $report->participants()
+        return $email->participants()
             ->where(function ($query) use ($user) {
                 $query->where('user_id', $user->id)
                     ->orWhere('email', $user->email);
@@ -35,17 +35,17 @@ class ReportPolicy
         return true;
     }
 
-    public function reply(User $user, Report $report): bool
+    public function reply(User $user, Email $email): bool
     {
-        return $this->view($user, $report);
+        return $this->view($user, $email);
     }
 
-    public function approve(User $user, Report $report): bool
+    public function approve(User $user, Email $email): bool
     {
         return $user->isApprover();
     }
 
-    public function updateStatus(User $user, Report $report): bool
+    public function updateStatus(User $user, Email $email): bool
     {
         return $user->isAdmin();
     }

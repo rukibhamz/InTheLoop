@@ -2,8 +2,8 @@
 
 namespace App\Console\Commands;
 
-use App\Models\Report;
-use App\Models\ReportMessage;
+use App\Models\Email;
+use App\Models\EmailMessage;
 use App\Services\Graph\GraphMailSync;
 use App\Services\Graph\GraphSettings;
 use App\Services\Graph\GraphTokenService;
@@ -19,11 +19,11 @@ class DebugGraphSync extends Command
 
     public function handle(GraphSettings $settings, GraphTokenService $tokens, GraphMailSync $sync): int
     {
-        $this->info('Recent reports:');
-        foreach (Report::query()->latest()->take(5)->get() as $report) {
-            $this->line("  #{$report->id} [{$report->status->value}] {$report->subject}");
-            $this->line("    conversation_id: ".($report->conversation_id ?: 'null'));
-            $this->line('    messages: '.ReportMessage::where('report_id', $report->id)->count());
+        $this->info('Recent emails:');
+        foreach (Email::query()->latest()->take(5)->get() as $email) {
+            $this->line("  #{$email->id} [{$email->status->value}] {$email->subject}");
+            $this->line("    conversation_id: ".($email->conversation_id ?: 'null'));
+            $this->line('    messages: '.EmailMessage::where('email_id', $email->id)->count());
         }
 
         $mailbox = $this->argument('mailbox') ?: $settings->defaultSenderMailbox();
@@ -60,7 +60,7 @@ class DebugGraphSync extends Command
                 $from = $message['from']['emailAddress']['address'] ?? '?';
                 $subject = $message['subject'] ?? '(no subject)';
                 $conv = substr($message['conversationId'] ?? 'null', 0, 24).'…';
-                $matched = $sync->debugMatchReport($message)?->id;
+                $matched = $sync->debugMatchEmail($message)?->id;
                 $this->line("    - {$subject}");
                 $this->line("      from: {$from} | conv: {$conv} | matches report: ".($matched ?: 'no'));
             }
