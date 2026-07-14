@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Enums\MessageDirection;
 use App\Enums\ParticipantType;
 use App\Enums\EmailStatus;
 use App\Http\Requests\StoreEmailRequest;
@@ -11,7 +10,6 @@ use App\Models\DirectoryContact;
 use App\Models\Email;
 use App\Models\EmailCategory;
 use App\Models\EmailEvent;
-use App\Models\EmailMessage;
 use App\Models\EmailParticipant;
 use App\Models\User;
 use App\Support\DirectoryDisplayResolver;
@@ -25,31 +23,37 @@ class EmailController extends Controller
     public function index(Request $request): View
     {
         $user = $request->user();
+        $folder = $request->string('folder')->toString();
+        if (! in_array($folder, ['inbox', 'sent'], true)) {
+            $folder = null;
+        }
 
         $baseQuery = Email::query()
             ->when(! $user->isAdmin(), function ($query) use ($user) {
-                $query->where(function ($visibility) use ($user) {
-                    $visibility->where('user_id', $user->id)
-                        ->orWhereHas('participants', function ($participantQuery) use ($user) {
-                            $participantQuery->where('user_id', $user->id)
-                                ->orWhere('email', $user->email);
-                        });
-                });
+                $this->applyEmailVisibility($query, $user);
             });
 
+        $inboxQuery = (clone $baseQuery)->where(function ($query) use ($user) {
+            $query->whereHas('participants', function ($participantQuery) use ($user) {
+                $participantQuery->where('user_id', $user->id)
+                    ->orWhere('email', $user->email);
+            });
+        });
+
+        $sentQuery = (clone $baseQuery)->where('user_id', $user->id);
+
         $stats = [
-            'sent' => EmailMessage::query()
-                ->where('direction', MessageDirection::Outbound)
-                ->whereHas('email', fn ($query) => $this->applyEmailVisibility($query, $user))
-                ->count(),
-            'replied' => EmailMessage::query()
-                ->where('direction', MessageDirection::Inbound)
-                ->where('show_in_thread', true)
-                ->whereHas('email', fn ($query) => $this->applyEmailVisibility($query, $user))
-                ->count(),
+            'inbox' => (clone $inboxQuery)->count(),
+            'sent' => (clone $sentQuery)->count(),
         ];
 
-        $emails = (clone $baseQuery)
+        $listQuery = match ($folder) {
+            'inbox' => $inboxQuery,
+            'sent' => $sentQuery,
+            default => $baseQuery,
+        };
+
+        $emails = $listQuery
             ->with(['category', 'participants', 'user'])
             ->withCount('messages')
             ->when($request->filled('status'), function ($query) use ($request) {
@@ -59,7 +63,7 @@ class EmailController extends Controller
             ->paginate(12)
             ->withQueryString();
 
-        return view('email.index', compact('emails', 'stats'));
+        return view('email.index', compact('emails', 'stats', 'folder'));
     }
 
     public function create(): View
