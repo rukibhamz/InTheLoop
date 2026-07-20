@@ -9,6 +9,7 @@ use App\Models\Email;
 use App\Models\EmailEvent;
 use App\Models\EmailMessage;
 use App\Services\Graph\GraphReplySender;
+use App\Support\QueueWorkerKick;
 use Illuminate\Http\RedirectResponse;
 
 class EmailReplyController extends Controller
@@ -55,6 +56,7 @@ class EmailReplyController extends Controller
                 $message->update(['email_pending' => false]);
             } else {
                 SendGraphReply::dispatch($message, $user);
+                QueueWorkerKick::afterMail();
             }
         }
 

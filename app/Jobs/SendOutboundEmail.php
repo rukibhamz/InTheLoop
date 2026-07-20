@@ -59,8 +59,9 @@ class SendOutboundEmail implements ShouldQueue
 
             SyncGraphMailboxes::startPollingLoop(45);
 
+            // Queue an immediate poll (no delay) so a kicked worker can pick it up now.
             foreach (app(\App\Services\Graph\GraphSettings::class)->mailboxesForEmail($this->email) as $mailbox) {
-                SyncGraphMailbox::dispatch($mailbox)->delay(now()->addSeconds(60));
+                SyncGraphMailbox::dispatch($mailbox);
             }
 
             return;

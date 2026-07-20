@@ -13,6 +13,7 @@ use App\Models\EmailEvent;
 use App\Models\EmailParticipant;
 use App\Models\User;
 use App\Support\DirectoryDisplayResolver;
+use App\Support\QueueWorkerKick;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -110,16 +111,20 @@ class EmailController extends Controller
             return $email;
         });
 
-        SendOutboundEmail::dispatch($email);
+        // Send immediately in this request so delivery does not depend on a
+        // manually running queue:work process.
+        SendOutboundEmail::dispatchSync($email);
 
         EmailEvent::query()->create([
             'email_id' => $email->id,
             'type' => 'queued',
         ]);
 
+        QueueWorkerKick::afterMail();
+
         return redirect()
             ->route('emails.show', $email)
-            ->with('success', 'Email submitted. It will be sent shortly.');
+            ->with('success', 'Email sent.');
     }
 
     public function show(Email $email): View

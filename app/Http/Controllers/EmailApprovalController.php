@@ -7,6 +7,7 @@ use App\Jobs\SendEmailStatusNotification;
 use App\Models\Email;
 use App\Models\EmailEvent;
 use App\Services\ApprovalToken;
+use App\Support\QueueWorkerKick;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -57,6 +58,7 @@ class EmailApprovalController extends Controller
         ]);
 
         SendEmailStatusNotification::dispatch($email, EmailStatus::Approved->label(), $request->user()->id);
+        QueueWorkerKick::afterMail();
 
         return redirect()
             ->route('emails.show', $email)
@@ -84,6 +86,7 @@ class EmailApprovalController extends Controller
         ]);
 
         SendEmailStatusNotification::dispatch($email, EmailStatus::Rejected->label(), $request->user()->id);
+        QueueWorkerKick::afterMail();
 
         return redirect()
             ->route('emails.show', $email)

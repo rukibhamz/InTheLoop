@@ -7,6 +7,7 @@ use App\Http\Requests\UpdateEmailStatusRequest;
 use App\Models\Email;
 use App\Models\EmailEvent;
 use App\Jobs\SendEmailStatusNotification;
+use App\Support\QueueWorkerKick;
 use Illuminate\Http\RedirectResponse;
 
 class EmailStatusController extends Controller
@@ -36,6 +37,7 @@ class EmailStatusController extends Controller
         ]);
 
         SendEmailStatusNotification::dispatch($email, $newStatus->label(), $request->user()->id);
+        QueueWorkerKick::afterMail();
 
         return back()->with('success', 'Email status updated to '.$newStatus->label().'.');
     }

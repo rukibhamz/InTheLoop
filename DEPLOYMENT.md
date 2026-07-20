@@ -445,6 +445,166 @@ MICROSOFT_REDIRECT_URI="${APP_URL}/auth/microsoft/callback"
 
 ---
 
+## 13. Deploy via Teleport (`tsh`)
+
+Teleport is the **access path** to the server (SSH / session), not a hosting platform. Typical flow: login → SSH into the host → pull/build/migrate → restart queue worker.
+
+### 13.1 One-time: client login
+
+```bash
+# Replace with your org's Teleport proxy
+tsh login --proxy=teleport.yourcompany.com --user=you@yourcompany.com
+
+# Confirm you can see the app host
+tsh ls
+```
+
+### 13.2 Open a session on the app server
+
+```bash
+tsh ssh deploy@intheloop-prod
+# or: tsh ssh --login=deploy intheloop-prod
+```
+
+Use the username and node name your Teleport admin assigned (examples: `ubuntu@web-01`, `www-data@intheloop`).
+
+### 13.3 First deploy (empty host) — recommended path
+
+On your laptop:
+
+```bash
+tsh login --proxy=teleport.yourcompany.com
+tsh ls
+tsh ssh deploy@intheloop-prod
+```
+
+On the remote host (Linux assumed):
+
+```bash
+# Install OS packages if missing: php 8.2+, composer, node 18+, git, mysql client
+export REPO_URL='https://github.com/YOUR_ORG/InTheLoop.git'   # your real repo URL
+export APP_URL='https://intheloop.yourcompany.com'            # real public HTTPS URL
+export APP_DIR='/var/www/intheloop'                           # optional override
+export BRANCH='main'
+
+bash -c 'curl -fsSL https://raw.githubusercontent.com/YOUR_ORG/InTheLoop/main/scripts/teleport-first-install.sh | bash'
+# Or if the repo is already cloned:
+#   cd /var/www/intheloop && bash scripts/teleport-first-install.sh
+```
+
+If git clone must use Teleport/SSH deploy keys, clone first, then run the script from the app dir.
+
+**After the script finishes**, complete these in order:
+
+| Step | Action |
+|------|--------|
+| 1 | Create DB + put `DB_*` in `.env` |
+| 2 | Vhost / IIS site → document root = `…/public` |
+| 3 | Browser → `{APP_URL}/install` (wizard: requirements → DB → org → admin) |
+| 4 | systemd queue worker: `queue:work --queue=mail,default,sync` |
+| 5 | Cron: `* * * * * cd /var/www/intheloop && php artisan schedule:run` |
+| 6 | Settings → Microsoft (Graph + SSO); Entra redirect = `{APP_URL}/auth/microsoft/callback` |
+| 7 | `php artisan graph:test` then `php artisan directory:sync` |
+
+Full detail: §4–§8 above. Update deploys later: §13.4 / `scripts/teleport-deploy.sh`.
+
+### 13.3b First deploy (manual, no script)
+
+On the remote host (same steps as §4–§7):
+
+```bash
+cd /var/www
+sudo git clone <your-repo-url> intheloop
+cd intheloop
+
+composer install --no-dev --optimize-autoloader
+cp .env.example .env
+# Edit .env: APP_URL, DB_*, QUEUE_CONNECTION=database, APP_ENV=production, APP_DEBUG=false
+php artisan key:generate
+
+npm ci && npm run build
+# Do NOT migrate yet if using the /install wizard — the wizard runs migrations.
+# If skipping the wizard: php artisan migrate --force
+
+# Permissions (Linux)
+sudo chown -R www-data:www-data storage bootstrap/cache
+sudo chmod -R ug+rwx storage bootstrap/cache
+```
+
+Point the web server document root at `public/`, then open `/install` (or finish `.env` + mark installed).
+
+Enable queue worker + cron (§7). Verify with `php artisan graph:test`.
+
+### 13.4 Update deploy (existing install)
+
+From your laptop (optional: copy only — usually git pull on the server is enough):
+
+```bash
+# Optional: push a release tag locally, then on the server:
+tsh ssh deploy@intheloop-prod
+```
+
+On the server:
+
+```bash
+cd /var/www/intheloop
+
+git fetch --all
+git checkout main   # or a release tag
+git pull
+
+composer install --no-dev --optimize-autoloader
+npm ci && npm run build
+php artisan migrate --force
+
+php artisan optimize:clear
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
+
+php artisan queue:restart
+```
+
+Or run the helper script (Linux):
+
+```bash
+bash scripts/teleport-deploy.sh
+```
+
+### 13.5 Useful Teleport helpers
+
+```bash
+# Copy a built artifact or .env template up (prefer editing secrets on the host)
+tsh scp .env.example deploy@intheloop-prod:/var/www/intheloop/.env.example
+
+# Download a log for debugging
+tsh scp deploy@intheloop-prod:/var/www/intheloop/storage/logs/laravel.log ./laravel.log
+
+# One-shot remote command without an interactive shell
+tsh ssh deploy@intheloop-prod "cd /var/www/intheloop && php artisan graph:test"
+```
+
+### 13.6 Production notes with Teleport
+
+| Topic | Recommendation |
+|-------|----------------|
+| Secrets | Keep `.env` on the server only; never commit it. Prefer Teleport Secrets / vault if your org uses them. |
+| Queue worker | systemd unit from §7 — Teleport access does not keep jobs running. |
+| Subdirectory installs | If `APP_URL` is `https://host/intheloop`, rebuild assets on that host so Vite `base` matches (`npm run build`). |
+| SSO redirect | Entra redirect URI must match production `APP_URL` exactly. |
+| Access control | Restrict Teleport roles to deploy users; prefer audit-friendly `tsh ssh` over open SSH keys. |
+
+### 13.7 What Teleport does *not* replace
+
+- Web server / PHP-FPM / MySQL setup  
+- HTTPS certificates  
+- Entra app registration + Application Access Policy  
+- Long-running `queue:work` and cron `schedule:run`  
+
+Those still follow §2–§7 after you land on the host via `tsh`.
+
+---
+
 ## Quick reference commands
 
 ```bash
@@ -464,6 +624,11 @@ php artisan graph:sync-mail
 # Cache (after settings changes)
 php artisan config:clear
 php artisan cache:clear
+
+# Teleport
+tsh login --proxy=teleport.yourcompany.com
+tsh ls
+tsh ssh deploy@intheloop-prod
 ```
 
 For day-to-day build status and feature list, see [checklist.md](checklist.md).
