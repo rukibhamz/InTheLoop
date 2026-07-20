@@ -1,7 +1,10 @@
 <IfModule mod_rewrite.c>
     Options +FollowSymLinks -Indexes
     RewriteEngine On
-    RewriteBase /InTheLoop/
+
+    # Domain-root hosts (cPanel, production): use /
+    # XAMPP subdirectory only — change to: RewriteBase /InTheLoop/
+    RewriteBase /
 
     # Vite / Mix build output lives in public/build/
     RewriteRule ^build/(.*)$ public/build/$1 [L]
