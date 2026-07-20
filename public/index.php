@@ -13,11 +13,12 @@ if (file_exists($maintenance = __DIR__.'/../storage/framework/maintenance.php'))
 // Register the Composer autoloader...
 require __DIR__.'/../vendor/autoload.php';
 
+// Generate APP_KEY before the app boots (avoids MissingAppKeyException on first deploy).
+require __DIR__.'/../bootstrap/ensure-app-key.php';
+ensure_install_app_key();
+
 // Bootstrap Laravel and handle the request...
 /** @var Application $app */
 $app = require_once __DIR__.'/../bootstrap/app.php';
-
-require __DIR__.'/../bootstrap/ensure-app-key.php';
-ensure_install_app_key();
 
 $app->handleRequest(Request::capture());
