@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Sign in') — {{ $branding->orgName() }}</title>
+    <link rel="stylesheet" href="{{ asset('fonts/material-symbols.css') }}">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <style>
         :root {

@@ -3,7 +3,8 @@
 @import '@fontsource/poppins/500.css';
 @import '@fontsource/poppins/600.css';
 @import '@fontsource/poppins/700.css';
-@import '@fontsource-variable/material-symbols-outlined/wght.css';
+/* Material Symbols are loaded from public/fonts/material-symbols.css via layouts
+   so icon fonts do not depend on Vite absolute /build/ paths. */
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';

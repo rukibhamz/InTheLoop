@@ -1,0 +1,32 @@
+/* Self-hosted Material Symbols — loaded via asset(), works on any APP_URL */
+@font-face {
+    font-family: 'Material Symbols Outlined Variable';
+    font-style: normal;
+    font-display: block;
+    font-weight: 100 700;
+    src: url('material-symbols-outlined.woff2') format('woff2-variations');
+}
+
+.material-symbols-outlined {
+    font-family: 'Material Symbols Outlined Variable', 'Material Symbols Outlined', sans-serif;
+    font-weight: 400;
+    font-style: normal;
+    font-size: 1.25em;
+    line-height: 1;
+    letter-spacing: normal;
+    text-transform: none;
+    display: inline-block;
+    white-space: nowrap;
+    word-wrap: normal;
+    direction: ltr;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    font-feature-settings: 'liga' 1;
+    font-variation-settings: 'wght' 400;
+    vertical-align: middle;
+}
+
+.material-symbols-filled {
+    font-variation-settings: 'wght' 500;
+}

@@ -1,8 +1,4 @@
 {
-  "node_modules/@fontsource-variable/material-symbols-outlined/files/material-symbols-outlined-latin-wght-normal.woff2": {
-    "file": "assets/material-symbols-outlined-latin-wght-normal-Cqg85hDe.woff2",
-    "src": "node_modules/@fontsource-variable/material-symbols-outlined/files/material-symbols-outlined-latin-wght-normal.woff2"
-  },
   "node_modules/@fontsource/poppins/files/poppins-devanagari-400-normal.woff": {
     "file": "assets/poppins-devanagari-400-normal-CqVvlrh5.woff",
     "src": "node_modules/@fontsource/poppins/files/poppins-devanagari-400-normal.woff"
@@ -100,7 +96,7 @@
     "src": "node_modules/@fontsource/poppins/files/poppins-latin-ext-700-normal.woff2"
   },
   "resources/css/app.css": {
-    "file": "assets/app-BeSeTXWz.css",
+    "file": "assets/app-9ev-TgGm.css",
     "src": "resources/css/app.css",
     "isEntry": true,
     "name": "app",

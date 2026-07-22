@@ -33,8 +33,11 @@
                 {{-- Microsoft SSO --}}
                 @if ($microsoftSettings->isSsoEnabled())
                     <a href="{{ route('auth.microsoft.redirect') }}" class="btn-microsoft">
-                        <svg class="h-5 w-5 fill-current" viewBox="0 0 23 23" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                            <path d="M11.46.01H.01V11.46h11.45V.01zm0 11.53H.01v11.45h11.45V11.54zm.08-11.53h11.45V11.46H11.54V.01zm0 11.53h11.45v11.45H11.54V11.54z"/>
+                        <svg class="h-5 w-5 shrink-0" viewBox="0 0 21 21" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                            <rect x="1" y="1" width="9" height="9" fill="#f25022"/>
+                            <rect x="11" y="1" width="9" height="9" fill="#7fba00"/>
+                            <rect x="1" y="11" width="9" height="9" fill="#00a4ef"/>
+                            <rect x="11" y="11" width="9" height="9" fill="#ffb900"/>
                         </svg>
                         Sign in with Microsoft
                     </a>
@@ -45,8 +48,11 @@
                         disabled
                         title="Microsoft SSO will be configured in admin settings"
                     >
-                        <svg class="h-5 w-5 fill-current" viewBox="0 0 23 23" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                            <path d="M11.46.01H.01V11.46h11.45V.01zm0 11.53H.01v11.45h11.45V11.54zm.08-11.53h11.45V11.46H11.54V.01zm0 11.53h11.45v11.45H11.54V11.54z"/>
+                        <svg class="h-5 w-5 shrink-0" viewBox="0 0 21 21" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                            <rect x="1" y="1" width="9" height="9" fill="#f25022"/>
+                            <rect x="11" y="1" width="9" height="9" fill="#7fba00"/>
+                            <rect x="1" y="11" width="9" height="9" fill="#00a4ef"/>
+                            <rect x="11" y="11" width="9" height="9" fill="#ffb900"/>
                         </svg>
                         Sign in with Microsoft
                     </button>

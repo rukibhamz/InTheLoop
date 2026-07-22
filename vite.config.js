@@ -34,6 +34,15 @@ export default defineConfig(({ mode }) => {
 
     return {
         base,
+        // Font URLs inside CSS must be relative to the CSS file so they work
+        // on both domain-root hosts (bawasa.afex.dev) and subdirectory installs.
+        experimental: {
+            renderBuiltUrl(filename, { hostType }) {
+                if (hostType === 'css') {
+                    return { relative: true };
+                }
+            },
+        },
         plugins: [
             laravel({
                 input: ['resources/css/app.css', 'resources/js/app.js'],
