@@ -6,9 +6,17 @@ use Illuminate\Database\Eloquent\Model;
 
 class AppSetting extends Model
 {
+    /**
+     * Singleton row with a fixed primary key (not auto-increment).
+     */
+    public $incrementing = false;
+
+    protected $keyType = 'int';
+
     public $timestamps = false;
 
     protected $fillable = [
+        'id',
         'org_name',
         'logo_path',
         'accent_color',

@@ -20,7 +20,10 @@ class AppSettingsController extends Controller
 
     public function update(UpdateAppSettingsRequest $request, Branding $branding): RedirectResponse
     {
-        $settings = AppSetting::query()->firstOrCreate(['id' => 1]);
+        $settings = AppSetting::query()->firstOrCreate(
+            ['id' => 1],
+            ['org_name' => config('app.name'), 'accent_color' => '#4648D4']
+        );
 
         $settings->fill([
             'org_name' => $request->string('org_name')->toString(),

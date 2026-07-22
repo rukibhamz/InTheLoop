@@ -27,7 +27,10 @@ class MicrosoftSettingsController extends Controller
         GraphSettings $graphSettings,
         GraphTokenService $graphTokens
     ): RedirectResponse {
-        $settings = AppSetting::query()->firstOrCreate(['id' => 1]);
+        $settings = AppSetting::query()->firstOrCreate(
+            ['id' => 1],
+            ['org_name' => config('app.name'), 'accent_color' => '#4648D4']
+        );
 
         $settings->fill([
             'graph_tenant_id' => $request->string('graph_tenant_id')->toString() ?: null,
