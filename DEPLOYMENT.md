@@ -447,6 +447,8 @@ MICROSOFT_REDIRECT_URI="${APP_URL}/auth/microsoft/callback"
 
 ## 13. Deploy via Teleport (`tsh`)
 
+For a full **Hetzner VPS + Teleport** first-install checklist (Nginx, TLS, systemd queue, Graph), see **[HETZNER_TELEPORT.md](HETZNER_TELEPORT.md)**.
+
 Teleport is the **access path** to the server (SSH / session), not a hosting platform. Typical flow: login → SSH into the host → pull/build/migrate → restart queue worker.
 
 ### 13.1 One-time: client login

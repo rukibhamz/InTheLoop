@@ -37,7 +37,8 @@ Open `http://127.0.0.1:8000` — the **install wizard** will guide you through:
 
 After installation, sign in at `/login`. Track build progress in [checklist.md](checklist.md).
 
-**Full install & production deployment:** see [DEPLOYMENT.md](DEPLOYMENT.md).
+**Full install & production deployment:** see [DEPLOYMENT.md](DEPLOYMENT.md).  
+**Hetzner VPS + Teleport checklist:** see [HETZNER_TELEPORT.md](HETZNER_TELEPORT.md).
 
 ### Microsoft Graph & SSO
 
