@@ -6,21 +6,30 @@
     @php
         $prefs = $user->notificationPreferences();
         $initials = strtoupper(substr($user->name, 0, 2));
+        $canEdit = $canEditAccount ?? false;
     @endphp
 
     <div class="mx-auto max-w-6xl">
         <div class="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div class="min-w-0">
                 <h1 class="page-title">Account Settings</h1>
-                <p class="mt-1 text-sm text-on-surface-variant">Manage your profile, security, and notification preferences.</p>
+                <p class="mt-1 text-sm text-on-surface-variant">
+                    @if ($canEdit)
+                        Manage your profile, security, and notification preferences.
+                    @else
+                        View your profile and security options. Contact an administrator to change account details.
+                    @endif
+                </p>
             </div>
             <div class="page-actions">
                 <a href="{{ route('users.show', $user) }}" class="btn-secondary py-2">View Public Profile</a>
-                <button type="submit" form="account-settings-form" class="btn-primary">Save Changes</button>
+                @if ($canEdit)
+                    <button type="submit" form="account-settings-form" class="btn-primary">Save Changes</button>
+                @endif
             </div>
         </div>
 
-        <form id="account-settings-form" method="POST" action="{{ route('settings.account.update') }}">
+        <form id="account-settings-form" method="POST" action="{{ route('settings.account.update') }}" @unless($canEdit) onsubmit="return false;" @endunless>
             @csrf
             @method('PUT')
 
@@ -36,19 +45,19 @@
                             <div class="sm:col-span-2 sm:grid sm:grid-cols-2 sm:gap-4">
                                 <div>
                                     <label for="name" class="form-label">Full Name</label>
-                                    <input id="name" name="name" type="text" class="form-input" value="{{ old('name', $user->name) }}" required>
+                                    <input id="name" name="name" type="text" class="form-input" value="{{ old('name', $user->name) }}" @disabled(! $canEdit) @required($canEdit)>
                                     @error('name')<p class="form-error">{{ $message }}</p>@enderror
                                 </div>
                                 <div>
                                     <label for="email" class="form-label">Email Address</label>
-                                    <input id="email" name="email" type="email" class="form-input" value="{{ old('email', $user->email) }}" required>
+                                    <input id="email" name="email" type="email" class="form-input" value="{{ old('email', $user->email) }}" @disabled(! $canEdit) @required($canEdit)>
                                     @error('email')<p class="form-error">{{ $message }}</p>@enderror
                                 </div>
                             </div>
 
                             <div>
                                 <label for="department" class="form-label">Department</label>
-                                <input id="department" name="department" type="text" class="form-input" value="{{ old('department', $user->department) }}" placeholder="e.g. Communications & Strategy">
+                                <input id="department" name="department" type="text" class="form-input" value="{{ old('department', $user->department) }}" placeholder="e.g. Communications & Strategy" @disabled(! $canEdit)>
                             </div>
 
                             <div>
@@ -58,7 +67,7 @@
 
                             <div class="sm:col-span-2">
                                 <label for="bio" class="form-label">Short Bio</label>
-                                <textarea id="bio" name="bio" class="form-textarea min-h-[100px]" placeholder="Tell colleagues a little about your role...">{{ old('bio', $user->bio) }}</textarea>
+                                <textarea id="bio" name="bio" class="form-textarea min-h-[100px]" placeholder="Tell colleagues a little about your role..." @disabled(! $canEdit)>{{ old('bio', $user->bio) }}</textarea>
                             </div>
                         </div>
                     </section>
@@ -94,13 +103,16 @@
                                             <td class="py-3 pr-4 font-medium text-on-surface">{{ $meta['label'] }}</td>
                                             @foreach (['email', 'app'] as $channel)
                                                 <td class="px-4 py-3 text-center">
-                                                    <input type="hidden" name="notification_preferences[{{ $key }}][{{ $channel }}]" value="0">
+                                                    @if ($canEdit)
+                                                        <input type="hidden" name="notification_preferences[{{ $key }}][{{ $channel }}]" value="0">
+                                                    @endif
                                                     <input
                                                         type="checkbox"
                                                         name="notification_preferences[{{ $key }}][{{ $channel }}]"
                                                         value="1"
                                                         class="h-4 w-4 rounded border-gray-300 text-primary-500 focus:ring-primary-500"
                                                         @checked(old("notification_preferences.{$key}.{$channel}", $prefs[$key][$channel] ?? false))
+                                                        @disabled(! $canEdit)
                                                     >
                                                 </td>
                                             @endforeach
@@ -132,33 +144,39 @@
                         </h2>
                         <p class="mb-4 text-sm text-on-surface-variant">Password last changed {{ $user->updated_at->diffForHumans() }}.</p>
 
-                        <form method="POST" action="{{ route('settings.account.password') }}" class="mb-4 space-y-3">
-                            @csrf
-                            @method('PUT')
-                            <div>
-                                <label for="current_password" class="form-label">Current Password</label>
-                                <input id="current_password" name="current_password" type="password" class="form-input" required>
-                                @error('current_password')<p class="form-error">{{ $message }}</p>@enderror
-                            </div>
-                            <div>
-                                <label for="password" class="form-label">New Password</label>
-                                <input id="password" name="password" type="password" class="form-input" required>
-                                @error('password')<p class="form-error">{{ $message }}</p>@enderror
-                            </div>
-                            <div>
-                                <label for="password_confirmation" class="form-label">Confirm New Password</label>
-                                <input id="password_confirmation" name="password_confirmation" type="password" class="form-input" required>
-                            </div>
-                            <button type="submit" class="btn-secondary w-full gap-2">
-                                <span class="material-symbols-outlined text-[18px]">lock_reset</span>
-                                Change Password
-                            </button>
-                        </form>
+                        @if ($user->auth_method !== 'sso')
+                            <form method="POST" action="{{ route('settings.account.password') }}" class="mb-4 space-y-3">
+                                @csrf
+                                @method('PUT')
+                                <div>
+                                    <label for="current_password" class="form-label">Current Password</label>
+                                    <input id="current_password" name="current_password" type="password" class="form-input" required>
+                                    @error('current_password')<p class="form-error">{{ $message }}</p>@enderror
+                                </div>
+                                <div>
+                                    <label for="password" class="form-label">New Password</label>
+                                    <input id="password" name="password" type="password" class="form-input" required>
+                                    @error('password')<p class="form-error">{{ $message }}</p>@enderror
+                                </div>
+                                <div>
+                                    <label for="password_confirmation" class="form-label">Confirm New Password</label>
+                                    <input id="password_confirmation" name="password_confirmation" type="password" class="form-input" required>
+                                </div>
+                                <button type="submit" class="btn-secondary w-full gap-2">
+                                    <span class="material-symbols-outlined text-[18px]">lock_reset</span>
+                                    Change Password
+                                </button>
+                            </form>
+                        @else
+                            <p class="mb-4 text-sm text-on-surface-variant">Password is managed by Microsoft sign-in.</p>
+                        @endif
 
-                        <label class="flex items-center justify-between rounded-lg border border-gray-100 bg-gray-50 px-4 py-3">
+                        <label class="flex items-center justify-between rounded-lg border border-gray-100 bg-gray-50 px-4 py-3 {{ $canEdit ? '' : 'opacity-70' }}">
                             <span class="text-sm font-medium text-on-surface">2FA Enabled</span>
-                            <input type="hidden" name="two_factor_enabled" value="0" form="account-settings-form">
-                            <input type="checkbox" name="two_factor_enabled" value="1" form="account-settings-form" class="h-5 w-10 rounded-full" @checked(old('two_factor_enabled', $user->two_factor_enabled))>
+                            @if ($canEdit)
+                                <input type="hidden" name="two_factor_enabled" value="0" form="account-settings-form">
+                            @endif
+                            <input type="checkbox" name="two_factor_enabled" value="1" form="account-settings-form" class="h-5 w-10 rounded-full" @checked(old('two_factor_enabled', $user->two_factor_enabled)) @disabled(! $canEdit)>
                         </label>
                         <p class="mt-2 text-xs text-on-surface-variant">Saves preference; full 2FA setup ships with SSO phase.</p>
                     </section>
@@ -177,22 +195,24 @@
             </div>
         </form>
 
-        <section class="mt-6 rounded-xl border border-danger-500/30 bg-danger-50/40 p-6">
-            <h2 class="mb-2 flex items-center gap-2 text-lg font-semibold text-danger-600">
-                <span class="material-symbols-outlined">warning</span>
-                Danger Zone
-            </h2>
-            <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                    <p class="font-semibold text-danger-600">Deactivate Account</p>
-                    <p class="mt-1 text-sm text-danger-600/80">Permanently deactivate your access to InTheLoop. This action cannot be undone by yourself.</p>
+        @if ($canEdit)
+            <section class="mt-6 rounded-xl border border-danger-500/30 bg-danger-50/40 p-6">
+                <h2 class="mb-2 flex items-center gap-2 text-lg font-semibold text-danger-600">
+                    <span class="material-symbols-outlined">warning</span>
+                    Danger Zone
+                </h2>
+                <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                        <p class="font-semibold text-danger-600">Deactivate Account</p>
+                        <p class="mt-1 text-sm text-danger-600/80">Permanently deactivate your access to InTheLoop. This action cannot be undone by yourself.</p>
+                    </div>
+                    <form method="POST" action="{{ route('settings.account.destroy') }}" onsubmit="return confirm('Deactivate your account? You will be signed out immediately.')">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit" class="btn-secondary border-danger-500 text-danger-600">Deactivate Account</button>
+                    </form>
                 </div>
-                <form method="POST" action="{{ route('settings.account.destroy') }}" onsubmit="return confirm('Deactivate your account? You will be signed out immediately.')">
-                    @csrf
-                    @method('DELETE')
-                    <button type="submit" class="btn-secondary border-danger-500 text-danger-600">Deactivate Account</button>
-                </form>
-            </div>
-        </section>
+            </section>
+        @endif
     </div>
 @endsection

@@ -13,11 +13,14 @@ class AccountSettingsController extends Controller
     {
         return view('settings.account', [
             'user' => auth()->user(),
+            'canEditAccount' => auth()->user()->isAdmin(),
         ]);
     }
 
     public function update(UpdateAccountSettingsRequest $request): RedirectResponse
     {
+        abort_unless($request->user()->isAdmin(), 403, 'Only administrators can update account settings.');
+
         $user = $request->user();
 
         $user->fill($request->only(['name', 'email', 'department', 'bio']));
@@ -37,6 +40,8 @@ class AccountSettingsController extends Controller
 
     public function destroy(Request $request): RedirectResponse
     {
+        abort_unless($request->user()->isAdmin(), 403, 'Only administrators can deactivate accounts.');
+
         $user = $request->user();
         $user->update(['is_active' => false]);
 
