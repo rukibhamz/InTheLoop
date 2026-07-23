@@ -3,10 +3,7 @@
 @section('title', 'Login')
 
 @section('content')
-    <main
-        class="login-enter z-10 w-full max-w-[440px]"
-        x-data="loginGate(@js($turnstileEnabled), @js($turnstileSiteKey))"
-    >
+    <main class="login-enter z-10 w-full max-w-[440px]" id="login-page">
         {{-- Branding --}}
         <div class="mb-8 flex flex-col items-center text-center">
             @if ($branding->logoUrl())
@@ -34,21 +31,21 @@
 
             <div class="space-y-6">
                 @if ($turnstileEnabled)
-                    <div class="flex justify-center">
-                        <div x-ref="turnstile"></div>
+                    <div class="flex min-h-[1px] justify-center">
+                        <div id="cf-turnstile"></div>
                     </div>
                 @endif
 
                 {{-- Microsoft SSO --}}
                 @if ($microsoftSettings->isSsoEnabled())
-                    <form method="POST" action="{{ route('auth.microsoft.redirect') }}">
+                    <form method="POST" action="{{ route('auth.microsoft.redirect') }}" data-login-form>
                         @csrf
-                        <input type="hidden" name="cf-turnstile-response" :value="token">
+                        <input type="hidden" name="cf-turnstile-response" value="" data-turnstile-token>
                         <button
                             type="submit"
                             class="btn-microsoft"
-                            :disabled="!canSubmit"
-                            :aria-disabled="(!canSubmit).toString()"
+                            data-login-submit
+                            @if ($turnstileEnabled) disabled @endif
                             title="{{ $turnstileEnabled ? 'Verifying browser…' : '' }}"
                         >
                             <svg class="h-5 w-5 shrink-0" viewBox="0 0 21 21" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -85,17 +82,12 @@
                 </div>
 
                 {{-- Local login --}}
-                <form
-                    method="POST"
-                    action="{{ route('login') }}"
-                    class="space-y-4"
-                    @submit="if (!canSubmit) { $event.preventDefault(); return; } submitting = true"
-                >
+                <form method="POST" action="{{ route('login') }}" class="space-y-4" data-login-form>
                     @csrf
                     @if (! empty($redirectTo))
                         <input type="hidden" name="redirect" value="{{ $redirectTo }}">
                     @endif
-                    <input type="hidden" name="cf-turnstile-response" :value="token">
+                    <input type="hidden" name="cf-turnstile-response" value="" data-turnstile-token>
 
                     <div class="space-y-1">
                         <label for="email" class="text-xs font-semibold text-on-surface">Email Address</label>
@@ -139,12 +131,11 @@
                     <button
                         type="submit"
                         class="btn-sign-in mt-2"
-                        :disabled="!canSubmit || submitting"
-                        :aria-disabled="(!canSubmit || submitting).toString()"
+                        data-login-submit
+                        @if ($turnstileEnabled) disabled @endif
                         title="{{ $turnstileEnabled ? 'Verifying browser…' : '' }}"
                     >
-                        <span x-show="!submitting">Sign In</span>
-                        <span x-show="submitting" x-cloak>Signing in...</span>
+                        Sign In
                     </button>
                 </form>
             </div>
@@ -173,5 +164,72 @@
 @if ($turnstileEnabled)
     @push('head')
         <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
+    @endpush
+
+    @push('scripts')
+        <script>
+            (function () {
+                var siteKey = @js($turnstileSiteKey);
+                var tokenInputs = document.querySelectorAll('[data-turnstile-token]');
+                var submitButtons = document.querySelectorAll('[data-login-submit]');
+                var forms = document.querySelectorAll('[data-login-form]');
+                var mounted = false;
+
+                function setToken(token) {
+                    tokenInputs.forEach(function (input) {
+                        input.value = token || '';
+                    });
+                    var ready = !!(token && token.length);
+                    submitButtons.forEach(function (button) {
+                        button.disabled = !ready;
+                        button.setAttribute('aria-disabled', ready ? 'false' : 'true');
+                        button.title = ready ? '' : 'Verifying browser…';
+                    });
+                }
+
+                function mountTurnstile() {
+                    if (mounted || !window.turnstile || !siteKey) {
+                        return;
+                    }
+
+                    var el = document.getElementById('cf-turnstile');
+                    if (!el) {
+                        return;
+                    }
+
+                    mounted = true;
+                    window.turnstile.render(el, {
+                        sitekey: siteKey,
+                        appearance: 'interaction-only',
+                        callback: setToken,
+                        'expired-callback': function () { setToken(''); },
+                        'error-callback': function () { setToken(''); },
+                    });
+                }
+
+                forms.forEach(function (form) {
+                    form.addEventListener('submit', function (event) {
+                        var token = form.querySelector('[data-turnstile-token]');
+                        if (!token || !token.value) {
+                            event.preventDefault();
+                        }
+                    });
+                });
+
+                setToken('');
+
+                if (window.turnstile) {
+                    mountTurnstile();
+                } else {
+                    var timer = setInterval(function () {
+                        if (window.turnstile) {
+                            clearInterval(timer);
+                            mountTurnstile();
+                        }
+                    }, 50);
+                    setTimeout(function () { clearInterval(timer); }, 15000);
+                }
+            })();
+        </script>
     @endpush
 @endif

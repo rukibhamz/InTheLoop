@@ -27,7 +27,7 @@ InTheLoop is an internal reporting app for staff who use **shared mailboxes** (n
 | **PHP 8.2+** | Extensions: `pdo`, `mbstring`, `openssl`, `tokenizer`, `xml`, `ctype`, `json`, `fileinfo` |
 | **Database** | MySQL/MariaDB or PostgreSQL (SQLite OK for local dev only) |
 | **Composer** | PHP dependency manager |
-| **Node.js 18+** | Build frontend assets (`npm run build`) |
+| **Node.js 20.19+ or 22.12+** | Required for Vite 7 (`npm run build`). If the server Node is older, build on a modern machine and upload `public/build/`. |
 | **Web server** | Apache or Nginx |
 | **HTTPS** | Required in production for SSO and secure cookies |
 | **Cron** | For Laravel scheduler (mail + directory sync) |

@@ -3,59 +3,6 @@ import Alpine from 'alpinejs';
 
 window.Alpine = Alpine;
 
-Alpine.data('loginGate', (enabled, siteKey) => ({
-    enabled: !!enabled,
-    siteKey: siteKey || '',
-    token: '',
-    submitting: false,
-    widgetId: null,
-
-    get canSubmit() {
-        return !this.enabled || this.token.length > 0;
-    },
-
-    init() {
-        if (!this.enabled || !this.siteKey) {
-            return;
-        }
-
-        const mount = () => {
-            if (!window.turnstile || !this.$refs.turnstile || this.widgetId !== null) {
-                return;
-            }
-
-            // Managed + interaction-only: silent in the background; UI only if Cloudflare suspects a bot.
-            this.widgetId = window.turnstile.render(this.$refs.turnstile, {
-                sitekey: this.siteKey,
-                appearance: 'interaction-only',
-                callback: (token) => {
-                    this.token = token;
-                },
-                'expired-callback': () => {
-                    this.token = '';
-                },
-                'error-callback': () => {
-                    this.token = '';
-                },
-            });
-        };
-
-        if (window.turnstile) {
-            mount();
-            return;
-        }
-
-        const timer = setInterval(() => {
-            if (window.turnstile) {
-                clearInterval(timer);
-                mount();
-            }
-        }, 50);
-
-        setTimeout(() => clearInterval(timer), 15000);
-    },
-}));
-
 Alpine.data('directoryPicker', (config = {}) => ({
     mode: config.mode ?? 'single',
     namePrefix: config.namePrefix ?? 'to',
