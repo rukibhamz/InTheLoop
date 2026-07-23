@@ -3,7 +3,10 @@
 @section('title', 'Login')
 
 @section('content')
-    <main class="login-enter z-10 w-full max-w-[440px]">
+    <main
+        class="login-enter z-10 w-full max-w-[440px]"
+        x-data="loginGate(@js($turnstileEnabled), @js($turnstileSiteKey))"
+    >
         {{-- Branding --}}
         <div class="mb-8 flex flex-col items-center text-center">
             @if ($branding->logoUrl())
@@ -30,17 +33,33 @@
             @endif
 
             <div class="space-y-6">
+                @if ($turnstileEnabled)
+                    <div class="flex justify-center">
+                        <div x-ref="turnstile"></div>
+                    </div>
+                @endif
+
                 {{-- Microsoft SSO --}}
                 @if ($microsoftSettings->isSsoEnabled())
-                    <a href="{{ route('auth.microsoft.redirect') }}" class="btn-microsoft">
-                        <svg class="h-5 w-5 shrink-0" viewBox="0 0 21 21" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                            <rect x="1" y="1" width="9" height="9" fill="#f25022"/>
-                            <rect x="11" y="1" width="9" height="9" fill="#7fba00"/>
-                            <rect x="1" y="11" width="9" height="9" fill="#00a4ef"/>
-                            <rect x="11" y="11" width="9" height="9" fill="#ffb900"/>
-                        </svg>
-                        Sign in with Microsoft
-                    </a>
+                    <form method="POST" action="{{ route('auth.microsoft.redirect') }}">
+                        @csrf
+                        <input type="hidden" name="cf-turnstile-response" :value="token">
+                        <button
+                            type="submit"
+                            class="btn-microsoft"
+                            :disabled="!canSubmit"
+                            :aria-disabled="(!canSubmit).toString()"
+                            title="{{ $turnstileEnabled ? 'Verifying browser…' : '' }}"
+                        >
+                            <svg class="h-5 w-5 shrink-0" viewBox="0 0 21 21" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                                <rect x="1" y="1" width="9" height="9" fill="#f25022"/>
+                                <rect x="11" y="1" width="9" height="9" fill="#7fba00"/>
+                                <rect x="1" y="11" width="9" height="9" fill="#00a4ef"/>
+                                <rect x="11" y="11" width="9" height="9" fill="#ffb900"/>
+                            </svg>
+                            Sign in with Microsoft
+                        </button>
+                    </form>
                 @else
                     <button
                         type="button"
@@ -66,11 +85,17 @@
                 </div>
 
                 {{-- Local login --}}
-                <form method="POST" action="{{ route('login') }}" class="space-y-4" x-data="{ submitting: false }" @submit="submitting = true">
+                <form
+                    method="POST"
+                    action="{{ route('login') }}"
+                    class="space-y-4"
+                    @submit="if (!canSubmit) { $event.preventDefault(); return; } submitting = true"
+                >
                     @csrf
                     @if (! empty($redirectTo))
                         <input type="hidden" name="redirect" value="{{ $redirectTo }}">
                     @endif
+                    <input type="hidden" name="cf-turnstile-response" :value="token">
 
                     <div class="space-y-1">
                         <label for="email" class="text-xs font-semibold text-on-surface">Email Address</label>
@@ -111,7 +136,13 @@
 
                     <input type="hidden" name="remember" value="1">
 
-                    <button type="submit" class="btn-sign-in mt-2" :disabled="submitting">
+                    <button
+                        type="submit"
+                        class="btn-sign-in mt-2"
+                        :disabled="!canSubmit || submitting"
+                        :aria-disabled="(!canSubmit || submitting).toString()"
+                        title="{{ $turnstileEnabled ? 'Verifying browser…' : '' }}"
+                    >
                         <span x-show="!submitting">Sign In</span>
                         <span x-show="submitting" x-cloak>Signing in...</span>
                     </button>
@@ -138,3 +169,9 @@
         </footer>
     </main>
 @endsection
+
+@if ($turnstileEnabled)
+    @push('head')
+        <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
+    @endpush
+@endif

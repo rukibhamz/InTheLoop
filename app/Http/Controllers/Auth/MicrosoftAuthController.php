@@ -9,6 +9,7 @@ use App\Services\Auth\AppLoginGate;
 use App\Services\Graph\GraphUserProfileResolver;
 use App\Services\MicrosoftSettings;
 use App\Services\MicrosoftSocialiteConfigurator;
+use App\Services\Turnstile;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -18,13 +19,26 @@ use Laravel\Socialite\Facades\Socialite;
 class MicrosoftAuthController extends Controller
 {
     public function redirect(
+        Request $request,
         MicrosoftSettings $settings,
-        MicrosoftSocialiteConfigurator $configurator
+        MicrosoftSocialiteConfigurator $configurator,
+        Turnstile $turnstile
     ): RedirectResponse {
         if (! $settings->isSsoEnabled()) {
             return redirect()
                 ->route('login')
                 ->withErrors(['email' => 'Microsoft sign-in is not enabled. Use email and password or contact your administrator.']);
+        }
+
+        if ($turnstile->isEnabled()) {
+            if (! $request->isMethod('post')) {
+                return redirect()->route('login');
+            }
+
+            $turnstile->validateOrFail(
+                $request->input('cf-turnstile-response'),
+                $request->ip()
+            );
         }
 
         $configurator->apply();

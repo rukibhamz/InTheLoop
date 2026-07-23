@@ -42,4 +42,9 @@ return [
         'tenant' => env('MICROSOFT_TENANT_ID', env('GRAPH_TENANT_ID', 'common')),
     ],
 
+    'turnstile' => [
+        'site_key' => env('TURNSTILE_SITE_KEY'),
+        'secret_key' => env('TURNSTILE_SECRET_KEY'),
+    ],
+
 ];

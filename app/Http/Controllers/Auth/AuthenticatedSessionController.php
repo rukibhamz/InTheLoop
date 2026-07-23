@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Support\PostLoginRedirect;
 use App\Services\Auth\AppLoginGate;
+use App\Services\Turnstile;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -13,7 +14,7 @@ use Illuminate\View\View;
 
 class AuthenticatedSessionController extends Controller
 {
-    public function create(Request $request): View
+    public function create(Request $request, Turnstile $turnstile): View
     {
         $adminContact = \App\Models\User::query()
             ->where('is_admin', true)
@@ -24,11 +25,18 @@ class AuthenticatedSessionController extends Controller
         return view('auth.login', [
             'redirectTo' => $request->string('redirect')->toString() ?: null,
             'adminContact' => $adminContact,
+            'turnstileEnabled' => $turnstile->isEnabled(),
+            'turnstileSiteKey' => $turnstile->siteKey(),
         ]);
     }
 
-    public function store(Request $request, AppLoginGate $loginGate): RedirectResponse
+    public function store(Request $request, AppLoginGate $loginGate, Turnstile $turnstile): RedirectResponse
     {
+        $turnstile->validateOrFail(
+            $request->input('cf-turnstile-response'),
+            $request->ip()
+        );
+
         $credentials = $request->validate([
             'email' => ['required', 'email'],
             'password' => ['required', 'string'],

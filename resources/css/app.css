@@ -326,7 +326,7 @@
     }
 
     .btn-sign-in {
-        @apply flex w-full items-center justify-center rounded-lg bg-secondary-500 px-6 py-4 text-sm font-semibold text-white transition hover:bg-secondary-600 active:scale-[0.98];
+        @apply flex w-full items-center justify-center rounded-lg bg-secondary-500 px-6 py-4 text-sm font-semibold text-white transition hover:bg-secondary-600 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-secondary-500;
     }
 
     .login-enter {
